@@ -16,26 +16,27 @@ const NAV_ITEMS = [
 export default function AppLayout() {
   const user = useStore(s => s.user);
   const stocks = useStore(s => s.stocks);
-  const startStockTicker = useStore(s => s.startStockTicker);
-  const stopStockTicker = useStore(s => s.stopStockTicker);
+  const startRealtimeSync = useStore(s => s.startRealtimeSync);
+  const stopRealtimeSync = useStore(s => s.stopRealtimeSync);
   const recordPortfolioSnapshot = useStore(s => s.recordPortfolioSnapshot);
   const navigate = useNavigate();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [searchReadOnly, setSearchReadOnly] = useState(true);
   
   const fearModalData = useStore(s => s.fearModalData);
   const clearFearModal = useStore(s => s.clearFearModal);
 
   useEffect(() => {
-    startStockTicker();
+    startRealtimeSync(4000);
     useStore.getState().fetchFearData();
     const snapInterval = setInterval(recordPortfolioSnapshot, 30000);
     return () => {
-      stopStockTicker();
+      stopRealtimeSync();
       clearInterval(snapInterval);
     };
-  }, []);
+  }, [startRealtimeSync, stopRealtimeSync, recordPortfolioSnapshot]);
 
   const filteredStocks = searchQuery
     ? stocks.filter(s =>
@@ -82,10 +83,19 @@ export default function AppLayout() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
               <input
                 type="text"
+                name="stock-search-live"
+                autoComplete="new-password"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                readOnly={searchReadOnly}
                 placeholder="Search stocks..."
                 value={searchQuery}
                 onChange={handleSearch}
-                onFocus={() => searchQuery && setShowSearch(true)}
+                onFocus={() => {
+                  setSearchReadOnly(false);
+                  if (searchQuery) setShowSearch(true);
+                }}
                 onBlur={() => setTimeout(() => setShowSearch(false), 200)}
               />
             </div>

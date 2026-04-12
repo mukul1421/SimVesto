@@ -115,10 +115,21 @@ export default function Signup() {
     const avgFear = count > 0 ? totalFear / count : 2;
     const fearScore = Math.min(100, Math.round(avgFear / 3 * 100));
 
-    setTimeout(() => {
+    setTimeout(async () => {
+      let walletBalance = 10000;
+      try {
+        const { api } = await import('../services/api.js');
+        const wallet = await api.getWallet();
+        if (Number.isFinite(Number(wallet?.balance))) {
+          walletBalance = Number(wallet.balance);
+        }
+      } catch {
+        // Keep fallback wallet balance when API call fails.
+      }
+
       const user = {
         id: Date.now(), name, email,
-        iqCoins: 10000, fearScore, fearClass: fearScore >= 65 ? 'HIGH' : fearScore >= 35 ? 'MEDIUM' : 'LOW',
+        iqCoins: walletBalance, fearScore, fearClass: fearScore >= 65 ? 'HIGH' : fearScore >= 35 ? 'MEDIUM' : 'LOW',
         literacyScore: litScore, totalTrades: 0, totalPnL: 0, sessionCount: 1,
         startingAmount: sliderValue, questionnaireAnswers: answers, createdAt: Date.now(),
       };

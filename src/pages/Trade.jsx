@@ -7,6 +7,13 @@ import { runMonteCarlo, getSuggestionColor, getSuggestionEmoji } from '../engine
 import { generateNarration } from '../engine/aiNarrator';
 
 const TIMEFRAMES = ['1D', '1W', '1M', '3M', '1Y'];
+const QTY_STEP = 0.01;
+
+const normalizeQty = (value) => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return QTY_STEP;
+  return Math.max(QTY_STEP, Number(n.toFixed(4)));
+};
 
 export default function Trade() {
   const { symbol } = useParams();
@@ -118,11 +125,13 @@ export default function Trade() {
       result = await sellStock(stock.id, quantity);
     }
 
-    // Fear Metric Logging
-    const hesitationMs = Date.now() - entryTime;
-    const isPositive = result?.pnl !== undefined ? result.pnl >= 0 : true;
-    updateFearScore('TRADE_DECISION', hesitationMs, isPositive);
-    setEntryTime(Date.now()); // Reset hesitation timer for next trade
+    // Fear Metric Logging only for successful orders
+    if (result?.success) {
+      const hesitationMs = Date.now() - entryTime;
+      const isPositive = result?.pnl !== undefined ? result.pnl >= 0 : true;
+      updateFearScore('TRADE_DECISION', hesitationMs, isPositive);
+      setEntryTime(Date.now()); // Reset hesitation timer for next trade
+    }
 
     setOrderResult(result);
     setShowOrderModal(true);
@@ -350,17 +359,17 @@ export default function Trade() {
                 QUANTITY
               </label>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <button className="btn btn-ghost btn-icon" onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                <button className="btn btn-ghost btn-icon" onClick={() => setQuantity(normalizeQty(quantity - QTY_STEP))}
                   style={{ border: '1px solid var(--border-default)', fontSize: '18px' }}>−</button>
-                <input type="number" min={1} value={quantity} onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                <input type="number" min={QTY_STEP} step={QTY_STEP} value={quantity} onChange={e => setQuantity(normalizeQty(parseFloat(e.target.value) || QTY_STEP))}
                   style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 700, flex: 1 }} />
-                <button className="btn btn-ghost btn-icon" onClick={() => setQuantity(quantity + 1)}
+                <button className="btn btn-ghost btn-icon" onClick={() => setQuantity(normalizeQty(quantity + QTY_STEP))}
                   style={{ border: '1px solid var(--border-default)', fontSize: '18px' }}>+</button>
               </div>
               {tab === 'BUY' && (
                 <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
                   {[1, 5, 10, 25].map(n => (
-                    <button key={n} className="btn btn-ghost btn-sm" onClick={() => setQuantity(n)}
+                    <button key={n} className="btn btn-ghost btn-sm" onClick={() => setQuantity(normalizeQty(n))}
                       style={{ flex: 1, fontSize: '11px', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-sm)' }}>
                       {n}
                     </button>

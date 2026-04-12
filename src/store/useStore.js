@@ -25,14 +25,50 @@ function saveState(key, value) {
   }
 }
 
+function getUserStorageKey(user, key) {
+  const identity = user?._id || user?.email || 'guest';
+  return `investiq_${identity}_${key}`;
+}
+
+function loadUserState(user, key, defaultValue) {
+  try {
+    const saved = localStorage.getItem(getUserStorageKey(user, key));
+    return saved ? JSON.parse(saved) : defaultValue;
+  } catch {
+    return defaultValue;
+  }
+}
+
+function saveUserState(user, key, value) {
+  try {
+    localStorage.setItem(getUserStorageKey(user, key), JSON.stringify(value));
+  } catch (e) {
+    console.warn('localStorage save failed:', e);
+  }
+}
+
+const DEFAULT_FEAR_SCORE = { score: 80, fearClass: 'HIGH' };
+const initialUser = loadState('user', null);
+
 const useStore = create((set, get) => ({
   // ── USER STATE ──
-  user: loadState('user', null),
+  user: initialUser,
   isAuthenticated: loadState('isAuthenticated', false),
   geminiApiKey: loadState('geminiApiKey', ''),
 
   setUser: (user) => {
-    set({ user, isAuthenticated: true });
+    set({
+      user,
+      isAuthenticated: true,
+      holdings: loadUserState(user, 'holdings', []),
+      orders: loadUserState(user, 'orders', []),
+      fearScore: loadUserState(user, 'fearScore', DEFAULT_FEAR_SCORE),
+      fearHistory: loadUserState(user, 'fearHistory', []),
+      milestones: loadUserState(user, 'milestones', []),
+      simulations: loadUserState(user, 'simulations', []),
+      portfolioHistory: loadUserState(user, 'portfolioHistory', []),
+      fearModalData: null,
+    });
     saveState('user', user);
     saveState('isAuthenticated', true);
   },
@@ -49,7 +85,18 @@ const useStore = create((set, get) => ({
   },
 
   logout: () => {
-    set({ user: null, isAuthenticated: false });
+    set({
+      user: null,
+      isAuthenticated: false,
+      holdings: [],
+      orders: [],
+      fearScore: DEFAULT_FEAR_SCORE,
+      fearHistory: [],
+      fearModalData: null,
+      milestones: [],
+      simulations: [],
+      portfolioHistory: [],
+    });
     saveState('user', null);
     saveState('isAuthenticated', false);
   },
@@ -57,6 +104,9 @@ const useStore = create((set, get) => ({
   // ── STOCKS STATE ──
   stocks: initializeStocks(),
   tickInterval: null,
+  realtimeSyncInterval: null,
+  realtimeLoading: false,
+  realtimeError: null,
 
   startStockTicker: () => {
     const interval = setInterval(() => {
@@ -75,8 +125,50 @@ const useStore = create((set, get) => ({
     set({ tickInterval: null });
   },
 
+  refreshRealtimeStocks: async () => {
+    set({ realtimeLoading: true, realtimeError: null });
+
+    try {
+      const { fetchRealtimeStocks, mergeLivePrice } = await import('../services/realtimeStocks');
+      const liveMap = await fetchRealtimeStocks();
+
+      set(state => ({
+        stocks: state.stocks.map(stock => (
+          liveMap[stock.symbol] ? mergeLivePrice(stock, liveMap[stock.symbol]) : stock
+        )),
+        realtimeLoading: false,
+        realtimeError: null,
+      }));
+
+      get().updateHoldingsPnL();
+    } catch (error) {
+      set({
+        realtimeLoading: false,
+        realtimeError: error?.message || 'Failed to fetch realtime stock data',
+      });
+    }
+  },
+
+  startRealtimeSync: (intervalMs = 12000) => {
+    const { realtimeSyncInterval } = get();
+    if (realtimeSyncInterval) clearInterval(realtimeSyncInterval);
+
+    get().refreshRealtimeStocks();
+    const intervalId = setInterval(() => {
+      get().refreshRealtimeStocks();
+    }, intervalMs);
+
+    set({ realtimeSyncInterval: intervalId });
+  },
+
+  stopRealtimeSync: () => {
+    const { realtimeSyncInterval } = get();
+    if (realtimeSyncInterval) clearInterval(realtimeSyncInterval);
+    set({ realtimeSyncInterval: null });
+  },
+
   // ── HOLDINGS STATE ──
-  holdings: loadState('holdings', []),
+  holdings: loadUserState(initialUser, 'holdings', []),
 
   updateHoldingsPnL: () => {
     const { holdings, stocks } = get();
@@ -151,8 +243,8 @@ const useStore = create((set, get) => ({
 
       set({ holdings: newHoldings, orders: newOrders });
       get().updateUser({ iqCoins: newCoins, totalTrades: (user.totalTrades || 0) + 1 });
-      saveState('holdings', newHoldings);
-      saveState('orders', newOrders);
+      saveUserState(get().user, 'holdings', newHoldings);
+      saveUserState(get().user, 'orders', newOrders);
       get().checkMilestones();
 
       return { success: true, order };
@@ -213,8 +305,8 @@ const useStore = create((set, get) => ({
         totalPnL: (user.totalPnL || 0) + tradePnL,
       });
 
-      saveState('holdings', newHoldings);
-      saveState('orders', newOrders);
+      saveUserState(get().user, 'holdings', newHoldings);
+      saveUserState(get().user, 'orders', newOrders);
       get().checkMilestones();
 
       return { success: true, order, pnl: tradePnL };
@@ -224,11 +316,11 @@ const useStore = create((set, get) => ({
   },
 
   // ── ORDERS ──
-  orders: loadState('orders', []),
+  orders: loadUserState(initialUser, 'orders', []),
 
   // ── FEAR SCORE ──
-  fearScore: loadState('fearScore', { score: 80, fearClass: 'HIGH' }),
-  fearHistory: loadState('fearHistory', []),
+  fearScore: loadUserState(initialUser, 'fearScore', DEFAULT_FEAR_SCORE),
+  fearHistory: loadUserState(initialUser, 'fearHistory', []),
   fearModalData: null, // used to trigger the modal
 
   fetchFearData: async () => {
@@ -261,8 +353,8 @@ const useStore = create((set, get) => ({
         fearModalData: (result.delta !== 0 && action !== 'QUIZ_RESULT') ? result : null
       });
 
-      saveState('fearScore', newScore);
-      saveState('fearHistory', historyUpdate);
+      saveUserState(get().user, 'fearScore', newScore);
+      saveUserState(get().user, 'fearHistory', historyUpdate);
       get().updateUser({ fearScore: result.score, fearClass: result.classification });
       get().checkMilestones();
     } catch(e) { console.error('Fear log failed', e); }
@@ -271,7 +363,7 @@ const useStore = create((set, get) => ({
   clearFearModal: () => set({ fearModalData: null }),
 
   // ── MILESTONES ──
-  milestones: loadState('milestones', []),
+  milestones: loadUserState(initialUser, 'milestones', []),
 
   checkMilestones: () => {
     const { user, orders, milestones, holdings } = get();
@@ -297,22 +389,22 @@ const useStore = create((set, get) => ({
 
     if (bonusCoins > 0) {
       set({ milestones: newMilestones });
-      saveState('milestones', newMilestones);
+      saveUserState(get().user, 'milestones', newMilestones);
       get().updateUser({ iqCoins: (user.iqCoins || 0) + bonusCoins });
     }
   },
 
   // ── SIMULATIONS ──
-  simulations: loadState('simulations', []),
+  simulations: loadUserState(initialUser, 'simulations', []),
 
   addSimulation: (sim) => {
     const newSims = [sim, ...get().simulations].slice(0, 50);
     set({ simulations: newSims });
-    saveState('simulations', newSims);
+    saveUserState(get().user, 'simulations', newSims);
   },
 
   // ── PORTFOLIO VALUE HISTORY ──
-  portfolioHistory: loadState('portfolioHistory', []),
+  portfolioHistory: loadUserState(initialUser, 'portfolioHistory', []),
 
   recordPortfolioSnapshot: () => {
     const { holdings, user } = get();
@@ -327,7 +419,7 @@ const useStore = create((set, get) => ({
     };
     const history = [...get().portfolioHistory, snapshot].slice(-200);
     set({ portfolioHistory: history });
-    saveState('portfolioHistory', history);
+    saveUserState(get().user, 'portfolioHistory', history);
   },
 }));
 

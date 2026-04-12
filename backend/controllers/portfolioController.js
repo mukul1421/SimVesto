@@ -3,9 +3,9 @@ import Stock from '../models/Stock.js';
 
 export const getPortfolio = async (req, res) => {
   try {
-    const portfolio = await Portfolio.findOne({ userId: req.user._id });
+    let portfolio = await Portfolio.findOne({ userId: req.user._id });
     if (!portfolio) {
-      return res.status(404).json({ message: 'Portfolio not found' });
+      portfolio = await Portfolio.create({ userId: req.user._id, assets: [] });
     }
 
     // Calculate current value dynamically

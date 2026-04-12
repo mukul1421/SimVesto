@@ -8,6 +8,8 @@ const SECTORS = ['All', 'Technology', 'Finance', 'Energy', 'Healthcare', 'FMCG',
 
 export default function Explore() {
   const stocks = useStore(s => s.stocks);
+  const realtimeLoading = useStore(s => s.realtimeLoading);
+  const realtimeError = useStore(s => s.realtimeError);
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [sector, setSector] = useState('All');
@@ -32,6 +34,16 @@ export default function Explore() {
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '4px' }}>Explore Stocks</h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Browse 20 simulated stocks and start trading</p>
+        {realtimeLoading && (
+          <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '8px' }}>
+            Refreshing live market prices...
+          </p>
+        )}
+        {realtimeError && (
+          <p style={{ color: 'var(--red)', fontSize: '12px', marginTop: '8px' }}>
+            Live data error: {realtimeError}
+          </p>
+        )}
       </motion.div>
 
       {/* Search + Filters */}
