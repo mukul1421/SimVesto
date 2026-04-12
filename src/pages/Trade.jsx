@@ -20,7 +20,7 @@ export default function Trade() {
   const geminiApiKey = useStore(s => s.geminiApiKey);
   const addSimulation = useStore(s => s.addSimulation);
   const updateFearScore = useStore(s => s.updateFearScore);
-  
+
   const [entryTime, setEntryTime] = useState(Date.now());
 
   const stock = useMemo(() => stocks.find(s => s.symbol === symbol), [stocks, symbol]);
@@ -117,7 +117,7 @@ export default function Trade() {
     } else {
       result = await sellStock(stock.id, quantity);
     }
-    
+
     // Fear Metric Logging
     const hesitationMs = Date.now() - entryTime;
     const isPositive = result?.pnl !== undefined ? result.pnl >= 0 : true;

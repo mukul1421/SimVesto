@@ -163,21 +163,41 @@ export default function Landing() {
   const navigate = useNavigate();
 
   return (
-    <div style={{ background: 'var(--bg-primary)', minHeight: '100vh' }}>
+    <div style={{ background: 'var(--bg-primary)', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
+      {/* 🔥 BACKGROUND BLOBS (THIS WAS MISSING) */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute top-[-200px] left-[-200px] w-[500px] h-[500px] bg-purple-600/20 blur-3xl rounded-full"></div>
+        <div className="absolute top-[100px] right-[-150px] w-[400px] h-[400px] bg-purple-500/10 blur-3xl rounded-full"></div>
+      </div>
+
       {/* Nav */}
-      <nav className="landing-nav">
+      {/* Nav */}
+      <nav className="landing-nav glass-nav">
+        {/* Glass highlight layer */}
+        <div className="glass-highlight"></div>
+
         <div className="landing-nav-brand">
           <div className="landing-nav-brand-icon">IQ</div>
-          <span>InvestIQ</span>
+          <span>SimVesto</span>
         </div>
+
         <div className="landing-nav-links">
           <a href="#features">Features</a>
           <a href="#how">How it Works</a>
           <a href="#start">Get Started</a>
         </div>
+
         <div className="landing-nav-actions">
-          <button className="btn btn-ghost" onClick={() => navigate('/login')}>Log In</button>
-          <button className="btn btn-primary btn-sm" onClick={() => navigate('/signup')}>Start Trading</button>
+          <button className="btn btn-ghost" onClick={() => navigate('/login')}>
+            Log In
+          </button>
+
+          <button
+            className="btn btn-primary btn-sm glass-btn"
+            onClick={() => navigate('/signup')}
+          >
+            Start Trading
+          </button>
         </div>
       </nav>
 
@@ -327,7 +347,7 @@ export default function Landing() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
           <div className="landing-nav-brand-icon" style={{ width: '24px', height: '24px', fontSize: '10px', borderRadius: '6px' }}>IQ</div>
-          <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>InvestIQ</span>
+          <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>SimVesto</span>
         </div>
         Built for learning. No real money. No real risk. © 2026
       </footer>

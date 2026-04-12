@@ -38,8 +38,8 @@ export default function Dashboard() {
   const greeting = fearScore.fearClass === 'HIGH'
     ? "Let's explore safely—no real money involved."
     : fearScore.fearClass === 'LOW'
-    ? "You're building real confidence. Ready for the next trade?"
-    : "Welcome back! Keep learning, keep growing.";
+      ? "You're building real confidence. Ready for the next trade?"
+      : "Welcome back! Keep learning, keep growing.";
 
   return (
     <div>
@@ -119,8 +119,8 @@ export default function Dashboard() {
               <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '4px' }}>{fearLabel}</div>
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                 {fearScore.fearClass === 'HIGH' ? 'Take it slow. Each simulation builds confidence.' :
-                 fearScore.fearClass === 'LOW' ? 'You\'re ready for diverse strategies!' :
-                 'Growing steadily. Keep exploring different scenarios.'}
+                  fearScore.fearClass === 'LOW' ? 'You\'re ready for diverse strategies!' :
+                    'Growing steadily. Keep exploring different scenarios.'}
               </div>
             </div>
           </div>

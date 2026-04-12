@@ -10,9 +10,32 @@ const generateToken = (id) => {
   });
 };
 
+function checkPasswordStrength(password) {
+  const hasLower = /[a-z]/.test(password);
+  const hasUpper = /[A-Z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+  if (password.length >= 8 && hasLower && hasUpper && hasNumber && hasSpecial) {
+    return "Strong";
+  } 
+  else if (password.length >= 6 && ((hasLower || hasUpper) && hasNumber)) {
+    return "Medium";
+  }
+  return "Weak";
+}
+
 export const registerUser = async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    // 🔥 Password strength check
+    const strength = checkPasswordStrength(password);
+    if (strength === "Weak") {
+      return res.status(400).json({
+        message: "Password is too weak. Add uppercase, numbers, special characters.",
+      });
+    }
 
     const userExists = await User.findOne({ email });
     if (userExists) {
