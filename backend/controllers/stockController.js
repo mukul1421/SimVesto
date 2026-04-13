@@ -2,28 +2,55 @@ import Stock from '../models/Stock.js';
 import yahooFinance from 'yahoo-finance2';
 
 const yahooClient = new yahooFinance();
+const normalizeSymbol = (symbol) => String(symbol || '').toUpperCase();
+
+const SYMBOL_ALIASES = {
+  IQTCS: 'TCS',
+  IQREL: 'RELIANCE',
+  IQHDFC: 'HDFCBANK',
+  IQINFY: 'INFY',
+  IQTAT: 'TATAMOTORS',
+  IQSBI: 'SBIN',
+  IQWIP: 'WIPRO',
+  IQSUN: 'SUNPHARMA',
+  IQAIR: 'BHARTIARTL',
+  IQITC: 'ITC',
+  IQADNI: 'ADANIPORTS',
+  IQMRF: 'MRF',
+  IQLTM: 'LTIM',
+  IQDRR: 'DRREDDY',
+  IQNTPC: 'NTPC',
+  IQBAJ: 'BAJFINANCE',
+  IQNEST: 'NESTLEIND',
+  IQZOM: 'ZOMATO',
+  IQPAY: 'PAYTM',
+  IQCRYP: 'CRYPTO',
+};
+
+const normalizeFrontendSymbol = (symbol) => SYMBOL_ALIASES[normalizeSymbol(symbol)] || normalizeSymbol(symbol);
+
 // Using the stocks list from the frontend's mock to initialize backend cache
 const MOCK_STOCKS = [
-  { symbol: 'IQTCS', currentPrice: 3800 },
-  { symbol: 'IQREL', currentPrice: 2450 },
-  { symbol: 'IQHDFC', currentPrice: 1650 },
-  { symbol: 'IQINFY', currentPrice: 1500 },
-  { symbol: 'IQTAT', currentPrice: 950 },
-  { symbol: 'IQSBI', currentPrice: 780 },
-  { symbol: 'IQWIP', currentPrice: 450 },
-  { symbol: 'IQSUN', currentPrice: 1200 },
-  { symbol: 'IQAIR', currentPrice: 1100 },
-  { symbol: 'IQITC', currentPrice: 420 },
-  { symbol: 'IQADNI', currentPrice: 1320 },
-  { symbol: 'IQMRF', currentPrice: 12500 },
-  { symbol: 'IQLTM', currentPrice: 5200 },
-  { symbol: 'IQDRR', currentPrice: 5800 },
-  { symbol: 'IQNTPC', currentPrice: 340 },
-  { symbol: 'IQBAJ', currentPrice: 7200 },
-  { symbol: 'IQNEST', currentPrice: 2400 },
-  { symbol: 'IQZOM', currentPrice: 185 },
-  { symbol: 'IQPAY', currentPrice: 650 },
-  { symbol: 'IQCRYP', currentPrice: 250 },
+  { symbol: 'TCS', currentPrice: 3800 },
+  { symbol: 'RELIANCE', currentPrice: 2450 },
+  { symbol: 'HDFCBANK', currentPrice: 1650 },
+  { symbol: 'INFY', currentPrice: 1500 },
+  { symbol: 'TATAMOTORS', currentPrice: 950 },
+  { symbol: 'SBIN', currentPrice: 780 },
+  { symbol: 'WIPRO', currentPrice: 450 },
+  { symbol: 'SUNPHARMA', currentPrice: 1200 },
+  { symbol: 'BHARTIARTL', currentPrice: 1100 },
+  { symbol: 'ITC', currentPrice: 420 },
+  { symbol: 'ADANIPORTS', currentPrice: 1320 },
+  { symbol: 'MRF', currentPrice: 12500 },
+  { symbol: 'LTIM', currentPrice: 5200 },
+  { symbol: 'DRREDDY', currentPrice: 5800 },
+  { symbol: 'NTPC', currentPrice: 340 },
+  { symbol: 'BAJFINANCE', currentPrice: 7200 },
+  { symbol: 'NESTLEIND', currentPrice: 2400 },
+  { symbol: 'ZOMATO', currentPrice: 185 },
+  { symbol: 'PAYTM', currentPrice: 650 },
+  { symbol: 'CRYPTO', currentPrice: 250 },
 ];
 
 const MOCK_STOCK_MAP = MOCK_STOCKS.reduce((acc, s) => {
@@ -32,26 +59,26 @@ const MOCK_STOCK_MAP = MOCK_STOCKS.reduce((acc, s) => {
 }, {});
 
 export const FRONTEND_TO_YAHOO_SYMBOLS = {
-  IQTCS: ['TCS.NS'],
-  IQREL: ['RELIANCE.NS'],
-  IQHDFC: ['HDFCBANK.NS'],
-  IQINFY: ['INFY.NS'],
-  IQTAT: ['TMCV.NS', 'TMCV.BO', 'TATAMOTORS.NS', 'TATAMTRDVR.NS'],
-  IQSBI: ['SBIN.NS'],
-  IQWIP: ['WIPRO.NS'],
-  IQSUN: ['SUNPHARMA.NS'],
-  IQAIR: ['BHARTIARTL.NS'],
-  IQITC: ['ITC.NS'],
-  IQADNI: ['ADANIPORTS.NS'],
-  IQMRF: ['MRF.NS'],
-  IQLTM: ['LTIM.NS'],
-  IQDRR: ['DRREDDY.NS'],
-  IQNTPC: ['NTPC.NS'],
-  IQBAJ: ['BAJFINANCE.NS'],
-  IQNEST: ['NESTLEIND.NS'],
-  IQZOM: ['ZOMATO.NS', 'ETERNAL.NS'],
-  IQPAY: ['PAYTM.NS'],
-  IQCRYP: ['BTC-INR'],
+  TCS: ['TCS.NS'],
+  RELIANCE: ['RELIANCE.NS'],
+  HDFCBANK: ['HDFCBANK.NS'],
+  INFY: ['INFY.NS'],
+  TATAMOTORS: ['TMCV.NS', 'TMCV.BO', 'TATAMOTORS.NS', 'TATAMTRDVR.NS'],
+  SBIN: ['SBIN.NS'],
+  WIPRO: ['WIPRO.NS'],
+  SUNPHARMA: ['SUNPHARMA.NS'],
+  BHARTIARTL: ['BHARTIARTL.NS'],
+  ITC: ['ITC.NS'],
+  ADANIPORTS: ['ADANIPORTS.NS'],
+  MRF: ['MRF.NS'],
+  LTIM: ['LTIM.NS'],
+  DRREDDY: ['DRREDDY.NS'],
+  NTPC: ['NTPC.NS'],
+  BAJFINANCE: ['BAJFINANCE.NS'],
+  NESTLEIND: ['NESTLEIND.NS'],
+  ZOMATO: ['ZOMATO.NS', 'ETERNAL.NS'],
+  PAYTM: ['PAYTM.NS'],
+  CRYPTO: ['BTC-INR'],
 };
 
 const BACKEND_TO_FRONTEND = Object.entries(FRONTEND_TO_YAHOO_SYMBOLS).reduce((acc, [frontend, candidates]) => {
@@ -128,9 +155,10 @@ export const getStocks = async (req, res) => {
 
 export const getStockBySymbol = async (req, res) => {
   try {
-    const stock = await Stock.findOne({ symbol: req.params.symbol });
+    const symbol = normalizeFrontendSymbol(req.params.symbol);
+    const stock = await Stock.findOne({ symbol }) || await Stock.findOne({ symbol: normalizeSymbol(req.params.symbol) });
     if (!stock) return res.status(404).json({ message: 'Stock not found' });
-    res.json(stock);
+    res.json({ ...stock.toObject(), symbol });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -154,7 +182,7 @@ export const getLiveStocks = async (req, res) => {
       const dbStock = await Stock.findOne({ symbol });
       if (dbStock) {
         live.push({
-          symbol: dbStock.symbol,
+          symbol,
           price: Number(Number(dbStock.currentPrice || 0).toFixed(2)),
           change: 0,
           percent: 0,
@@ -204,7 +232,7 @@ export const getLiveStockBySymbol = async (req, res) => {
     const incoming = (req.params.symbol || '').toUpperCase();
     const frontendSymbol = FRONTEND_TO_YAHOO_SYMBOLS[incoming]
       ? incoming
-      : (BACKEND_TO_FRONTEND[incoming] || incoming);
+      : (BACKEND_TO_FRONTEND[incoming] || normalizeFrontendSymbol(incoming));
 
     try {
       const live = await fetchLiveByFrontendSymbol(frontendSymbol);
@@ -213,7 +241,7 @@ export const getLiveStockBySymbol = async (req, res) => {
       const dbStock = await Stock.findOne({ symbol: frontendSymbol });
       if (dbStock) {
         return res.json({
-          symbol: dbStock.symbol,
+          symbol: frontendSymbol,
           price: Number(Number(dbStock.currentPrice || 0).toFixed(2)),
           change: 0,
           percent: 0,

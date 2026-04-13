@@ -9,6 +9,14 @@ import { generateNarration } from '../engine/aiNarrator';
 const TIMEFRAMES = ['1D', '1W', '1M', '3M', '1Y'];
 const QTY_STEP = 1;
 
+const TIMEFRAME_CONFIG = {
+  '1D': { windowMs: 24 * 60 * 60 * 1000, bucketMs: 60 * 60 * 1000 },
+  '1W': { windowMs: 7 * 24 * 60 * 60 * 1000, bucketMs: 6 * 60 * 60 * 1000 },
+  '1M': { windowMs: 30 * 24 * 60 * 60 * 1000, bucketMs: 24 * 60 * 60 * 1000 },
+  '3M': { windowMs: 90 * 24 * 60 * 60 * 1000, bucketMs: 3 * 24 * 60 * 60 * 1000 },
+  '1Y': { windowMs: 365 * 24 * 60 * 60 * 1000, bucketMs: 7 * 24 * 60 * 60 * 1000 },
+};
+
 const normalizeQty = (value) => {
   const n = Number(value);
   if (!Number.isFinite(n)) return QTY_STEP;
@@ -17,32 +25,70 @@ const normalizeQty = (value) => {
 
 const formatMoney = (value) => `₹${Number(value || 0).toLocaleString()}`;
 
+const formatBucketLabel = (timestamp, timeframe) => {
+  const dt = new Date(timestamp);
+  if (timeframe === '1D') {
+    return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  if (timeframe === '1W') {
+    return dt.toLocaleDateString([], { weekday: 'short', hour: '2-digit' });
+  }
+  if (timeframe === '1M' || timeframe === '3M') {
+    return dt.toLocaleDateString([], { day: '2-digit', month: 'short' });
+  }
+  return dt.toLocaleDateString([], { month: 'short', day: '2-digit' });
+};
+
 const buildChartSlices = (stock, timeframe) => {
   if (!stock) return [];
-  const history = stock.priceHistory || [];
-  let sliceCount;
-  switch (timeframe) {
-    case '1D': sliceCount = 24; break;
-    case '1W': sliceCount = 168; break;
-    case '1M': sliceCount = Math.min(history.length, 720); break;
-    case '3M': sliceCount = history.length; break;
-    case '1Y': sliceCount = history.length; break;
-    default: sliceCount = 24;
+  const history = (stock.priceHistory || []).slice().sort((a, b) => a.time - b.time);
+  if (history.length === 0) return [];
+
+  const config = TIMEFRAME_CONFIG[timeframe] || TIMEFRAME_CONFIG['1D'];
+  const end = history[history.length - 1].time;
+  const start = end - config.windowMs;
+  const filtered = history.filter(point => point.time >= start);
+  const scoped = filtered.length > 0 ? filtered : history.slice(-48);
+
+  const buckets = new Map();
+  for (const point of scoped) {
+    const bucketStart = Math.floor(point.time / config.bucketMs) * config.bucketMs;
+    const existing = buckets.get(bucketStart);
+
+    if (!existing) {
+      buckets.set(bucketStart, {
+        timestamp: bucketStart,
+        open: point.open ?? point.price,
+        high: point.high ?? point.price,
+        low: point.low ?? point.price,
+        close: point.close ?? point.price,
+        volume: point.volume || 0,
+      });
+      continue;
+    }
+
+    existing.high = Math.max(existing.high, point.high ?? point.price);
+    existing.low = Math.min(existing.low, point.low ?? point.price);
+    existing.close = point.close ?? point.price;
+    existing.volume += point.volume || 0;
   }
 
-  return history.slice(-sliceCount).map((point, index, slice) => {
-    const previous = slice[index - 1]?.price ?? point.price;
+  const grouped = Array.from(buckets.values()).sort((a, b) => a.timestamp - b.timestamp);
+
+  return grouped.map((point, index, slice) => {
+    const previous = slice[index - 1]?.close ?? point.close;
     return {
       idx: index,
-      time: new Date(point.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      time: point.timestamp,
+      label: formatBucketLabel(point.timestamp, timeframe),
       open: previous,
-      close: point.price,
+      close: point.close,
       high: point.high,
       low: point.low,
-      price: point.price,
+      price: point.close,
       volume: point.volume,
-      change: point.price - previous,
-      changePct: previous ? ((point.price - previous) / previous) * 100 : 0,
+      change: point.close - previous,
+      changePct: previous ? ((point.close - previous) / previous) * 100 : 0,
     };
   });
 };
@@ -127,8 +173,8 @@ function CandleChart({ data, holding, isUp }) {
         )}
       </svg>
       <div style={{ position: 'absolute', inset: 'auto 12px 10px 12px', display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)' }}>
-        <span>{data[0]?.time}</span>
-        <span>{data[data.length - 1]?.time}</span>
+        <span>{data[0]?.label}</span>
+        <span>{data[data.length - 1]?.label}</span>
       </div>
     </div>
   );
@@ -202,8 +248,8 @@ function WaterfallChart({ data, holding, isUp }) {
         )}
       </svg>
       <div style={{ position: 'absolute', inset: 'auto 12px 10px 12px', display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)' }}>
-        <span>{data[0]?.time}</span>
-        <span>{data[data.length - 1]?.time}</span>
+        <span>{data[0]?.label}</span>
+        <span>{data[data.length - 1]?.label}</span>
       </div>
     </div>
   );
@@ -338,7 +384,13 @@ export default function Trade() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
             <div className="stock-icon" style={{ background: `${stock.color}20`, color: stock.color, width: '40px', height: '40px', fontSize: '14px' }}>
-              {stock.symbol.slice(2, 4)}
+              {stock.name
+                .split(' ')
+                .filter(Boolean)
+                .slice(0, 2)
+                .map(word => word[0])
+                .join('')
+                .toUpperCase()}
             </div>
             <div>
               <h1 style={{ fontSize: '22px', fontWeight: 700 }}>{stock.name}</h1>
@@ -370,10 +422,10 @@ export default function Trade() {
                   <button key={tf} className="btn btn-sm"
                     onClick={() => setTimeframe(tf)}
                     style={timeframe === tf ? {
-                      background: 'var(--accent-purple-dim)', color: 'var(--accent-purple-light)',
+                      background: 'var(--accent-purple-dim)', color: 'var(--accent-purple)',
                       borderRadius: 'var(--radius-sm)', padding: '4px 12px', fontSize: '11px', fontWeight: 600,
                     } : {
-                      color: 'var(--text-muted)', borderRadius: 'var(--radius-sm)', padding: '4px 12px', fontSize: '11px',
+                      color: 'var(--text-secondary)', borderRadius: 'var(--radius-sm)', padding: '4px 12px', fontSize: '11px',
                     }}>
                     {tf}
                   </button>
@@ -381,13 +433,13 @@ export default function Trade() {
               </div>
               <div style={{ display: 'flex', gap: '4px' }}>
                 <button className="btn btn-sm btn-ghost" onClick={() => setChartType('area')}
-                  style={{ fontSize: '11px', color: chartType === 'area' ? 'var(--accent-purple-light)' : 'var(--text-muted)' }}>Area</button>
+                  style={{ fontSize: '11px', color: chartType === 'area' ? 'var(--accent-purple)' : 'var(--text-secondary)' }}>Area</button>
                 <button className="btn btn-sm btn-ghost" onClick={() => setChartType('line')}
-                  style={{ fontSize: '11px', color: chartType === 'line' ? 'var(--accent-purple-light)' : 'var(--text-muted)' }}>Line</button>
+                  style={{ fontSize: '11px', color: chartType === 'line' ? 'var(--accent-purple)' : 'var(--text-secondary)' }}>Line</button>
                 <button className="btn btn-sm btn-ghost" onClick={() => setChartType('candle')}
-                  style={{ fontSize: '11px', color: chartType === 'candle' ? 'var(--accent-purple-light)' : 'var(--text-muted)' }}>Candles</button>
+                  style={{ fontSize: '11px', color: chartType === 'candle' ? 'var(--accent-purple)' : 'var(--text-secondary)' }}>Candles</button>
                 <button className="btn btn-sm btn-ghost" onClick={() => setChartType('waterfall')}
-                  style={{ fontSize: '11px', color: chartType === 'waterfall' ? 'var(--accent-purple-light)' : 'var(--text-muted)' }}>Waterfall</button>
+                  style={{ fontSize: '11px', color: chartType === 'waterfall' ? 'var(--accent-purple)' : 'var(--text-secondary)' }}>Waterfall</button>
               </div>
             </div>
 
@@ -405,11 +457,12 @@ export default function Trade() {
                         <stop offset="100%" stopColor={isUp ? '#10b981' : '#ef4444'} stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <XAxis dataKey="time" tick={{ fontSize: 10, fill: '#5a5a72' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={24} />
                     <YAxis domain={['auto', 'auto']} tick={{ fontSize: 10, fill: '#5a5a72' }} axisLine={false} tickLine={false} width={60}
                       tickFormatter={v => `₹${v.toLocaleString()}`} />
                     <Tooltip
-                      contentStyle={{ background: '#111118', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '8px', fontSize: '12px', fontFamily: 'JetBrains Mono' }}
+                      labelFormatter={(_, payload) => payload?.[0]?.payload?.label || ''}
+                      contentStyle={{ background: '#0f172a', border: '1px solid rgba(29,181,132,0.25)', borderRadius: '8px', fontSize: '12px', fontFamily: 'JetBrains Mono' }}
                       formatter={(v) => [`₹${v.toLocaleString()}`, 'Price']}
                     />
                     {holding && <ReferenceLine y={holding.avgBuyPrice} stroke="#7c3aed" strokeDasharray="4 4" label={{ value: `Avg: ₹${holding.avgBuyPrice}`, position: 'right', fill: '#7c3aed', fontSize: 10 }} />}
@@ -418,11 +471,12 @@ export default function Trade() {
                   </AreaChart>
                 ) : (
                   <LineChart data={chartData}>
-                    <XAxis dataKey="time" tick={{ fontSize: 10, fill: '#5a5a72' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={24} />
                     <YAxis domain={['auto', 'auto']} tick={{ fontSize: 10, fill: '#5a5a72' }} axisLine={false} tickLine={false} width={60}
                       tickFormatter={v => `₹${v.toLocaleString()}`} />
                     <Tooltip
-                      contentStyle={{ background: '#111118', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '8px', fontSize: '12px', fontFamily: 'JetBrains Mono' }}
+                      labelFormatter={(_, payload) => payload?.[0]?.payload?.label || ''}
+                      contentStyle={{ background: '#0f172a', border: '1px solid rgba(29,181,132,0.25)', borderRadius: '8px', fontSize: '12px', fontFamily: 'JetBrains Mono' }}
                       formatter={(v) => [`₹${v.toLocaleString()}`, 'Price']}
                     />
                     <Line type="monotone" dataKey="price" stroke={isUp ? '#10b981' : '#ef4444'}

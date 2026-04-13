@@ -10,6 +10,32 @@ const roundQty = (value) => Math.floor(Number(value || 0));
 const QTY_EPSILON = 0.0001;
 const TEMP_TEST_BALANCE = 100000;
 
+const SYMBOL_ALIASES = {
+  IQTCS: 'TCS',
+  IQREL: 'RELIANCE',
+  IQHDFC: 'HDFCBANK',
+  IQINFY: 'INFY',
+  IQTAT: 'TATAMOTORS',
+  IQSBI: 'SBIN',
+  IQWIP: 'WIPRO',
+  IQSUN: 'SUNPHARMA',
+  IQAIR: 'BHARTIARTL',
+  IQITC: 'ITC',
+  IQADNI: 'ADANIPORTS',
+  IQMRF: 'MRF',
+  IQLTM: 'LTIM',
+  IQDRR: 'DRREDDY',
+  IQNTPC: 'NTPC',
+  IQBAJ: 'BAJFINANCE',
+  IQNEST: 'NESTLEIND',
+  IQZOM: 'ZOMATO',
+  IQPAY: 'PAYTM',
+  IQCRYP: 'CRYPTO',
+};
+
+const normalizeSymbol = (symbol) => String(symbol || '').toUpperCase();
+const normalizeFrontendSymbol = (symbol) => SYMBOL_ALIASES[normalizeSymbol(symbol)] || normalizeSymbol(symbol);
+
 const parseQuantity = (value) => {
   const qty = Number(value);
   if (!Number.isInteger(qty) || qty <= 0) {
@@ -42,10 +68,14 @@ const getOrCreatePortfolio = async (userId) => {
 };
 
 const resolveTradeStock = async (symbol) => {
-  const normalizedSymbol = symbol.toUpperCase();
-  let stock = await Stock.findOne({ symbol: normalizedSymbol });
+  const normalizedSymbol = normalizeFrontendSymbol(symbol);
+  const legacySymbol = normalizeSymbol(symbol);
+  let stock = await Stock.findOne({ symbol: normalizedSymbol }) || await Stock.findOne({ symbol: legacySymbol });
 
   if (stock && Number.isFinite(Number(stock.currentPrice))) {
+    if (stock.symbol !== normalizedSymbol) {
+      stock.symbol = normalizedSymbol;
+    }
     return stock;
   }
 

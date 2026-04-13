@@ -2,26 +2,26 @@
 // Creates realistic real-time stock price movement
 
 const STOCKS = [
-  { id: 1, symbol: 'IQTCS', name: 'TCS', sector: 'Technology', basePrice: 3800, volatility: 0.15, drift: 0.12, color: '#7c3aed' },
-  { id: 2, symbol: 'IQREL', name: 'Reliance', sector: 'Energy', basePrice: 2450, volatility: 0.20, drift: 0.10, color: '#3b82f6' },
-  { id: 3, symbol: 'IQHDFC', name: 'HDFC Bank', sector: 'Finance', basePrice: 1650, volatility: 0.12, drift: 0.08, color: '#10b981' },
-  { id: 4, symbol: 'IQINFY', name: 'Infosys', sector: 'Technology', basePrice: 1500, volatility: 0.18, drift: 0.11, color: '#f59e0b' },
-  { id: 5, symbol: 'IQTAT', name: 'Tata Motors', sector: 'Automobile', basePrice: 950, volatility: 0.25, drift: 0.13, color: '#ef4444' },
-  { id: 6, symbol: 'IQSBI', name: 'SBI', sector: 'Finance', basePrice: 780, volatility: 0.14, drift: 0.07, color: '#06b6d4' },
-  { id: 7, symbol: 'IQWIP', name: 'Wipro', sector: 'Technology', basePrice: 450, volatility: 0.16, drift: 0.09, color: '#8b5cf6' },
-  { id: 8, symbol: 'IQSUN', name: 'Sun Pharma', sector: 'Healthcare', basePrice: 1200, volatility: 0.19, drift: 0.10, color: '#ec4899' },
-  { id: 9, symbol: 'IQAIR', name: 'Bharti Airtel', sector: 'Telecom', basePrice: 1100, volatility: 0.13, drift: 0.09, color: '#14b8a6' },
-  { id: 10, symbol: 'IQITC', name: 'ITC', sector: 'FMCG', basePrice: 420, volatility: 0.10, drift: 0.06, color: '#f97316' },
-  { id: 11, symbol: 'IQADNI', name: 'Adani Ports', sector: 'Infrastructure', basePrice: 1320, volatility: 0.30, drift: 0.15, color: '#a855f7' },
-  { id: 12, symbol: 'IQMRF', name: 'MRF', sector: 'Automobile', basePrice: 12500, volatility: 0.12, drift: 0.08, color: '#d946ef' },
-  { id: 13, symbol: 'IQLTM', name: 'L&T Mindtree', sector: 'Technology', basePrice: 5200, volatility: 0.22, drift: 0.14, color: '#0ea5e9' },
-  { id: 14, symbol: 'IQDRR', name: 'DR Reddy', sector: 'Healthcare', basePrice: 5800, volatility: 0.16, drift: 0.09, color: '#22d3ee' },
-  { id: 15, symbol: 'IQNTPC', name: 'NTPC', sector: 'Energy', basePrice: 340, volatility: 0.11, drift: 0.07, color: '#84cc16' },
-  { id: 16, symbol: 'IQBAJ', name: 'Bajaj Finance', sector: 'Finance', basePrice: 7200, volatility: 0.20, drift: 0.12, color: '#eab308' },
-  { id: 17, symbol: 'IQNEST', name: 'Nestlé India', sector: 'FMCG', basePrice: 2400, volatility: 0.08, drift: 0.06, color: '#fb923c' },
-  { id: 18, symbol: 'IQZOM', name: 'Zomato', sector: 'Technology', basePrice: 185, volatility: 0.35, drift: 0.18, color: '#f43f5e' },
-  { id: 19, symbol: 'IQPAY', name: 'Paytm', sector: 'Fintech', basePrice: 650, volatility: 0.40, drift: 0.05, color: '#2dd4bf' },
-  { id: 20, symbol: 'IQCRYP', name: 'CryptoCoin', sector: 'Crypto', basePrice: 250, volatility: 0.80, drift: 0.45, color: '#fbbf24' },
+  { id: 1, symbol: 'TCS', name: 'TCS', sector: 'Technology', basePrice: 3800, volatility: 0.15, drift: 0.12, color: '#7c3aed' },
+  { id: 2, symbol: 'RELIANCE', name: 'Reliance', sector: 'Energy', basePrice: 2450, volatility: 0.20, drift: 0.10, color: '#3b82f6' },
+  { id: 3, symbol: 'HDFCBANK', name: 'HDFC Bank', sector: 'Finance', basePrice: 1650, volatility: 0.12, drift: 0.08, color: '#10b981' },
+  { id: 4, symbol: 'INFY', name: 'Infosys', sector: 'Technology', basePrice: 1500, volatility: 0.18, drift: 0.11, color: '#f59e0b' },
+  { id: 5, symbol: 'TATAMOTORS', name: 'Tata Motors', sector: 'Automobile', basePrice: 950, volatility: 0.25, drift: 0.13, color: '#ef4444' },
+  { id: 6, symbol: 'SBIN', name: 'SBI', sector: 'Finance', basePrice: 780, volatility: 0.14, drift: 0.07, color: '#06b6d4' },
+  { id: 7, symbol: 'WIPRO', name: 'Wipro', sector: 'Technology', basePrice: 450, volatility: 0.16, drift: 0.09, color: '#8b5cf6' },
+  { id: 8, symbol: 'SUNPHARMA', name: 'Sun Pharma', sector: 'Healthcare', basePrice: 1200, volatility: 0.19, drift: 0.10, color: '#ec4899' },
+  { id: 9, symbol: 'BHARTIARTL', name: 'Bharti Airtel', sector: 'Telecom', basePrice: 1100, volatility: 0.13, drift: 0.09, color: '#14b8a6' },
+  { id: 10, symbol: 'ITC', name: 'ITC', sector: 'FMCG', basePrice: 420, volatility: 0.10, drift: 0.06, color: '#f97316' },
+  { id: 11, symbol: 'ADANIPORTS', name: 'Adani Ports', sector: 'Infrastructure', basePrice: 1320, volatility: 0.30, drift: 0.15, color: '#a855f7' },
+  { id: 12, symbol: 'MRF', name: 'MRF', sector: 'Automobile', basePrice: 12500, volatility: 0.12, drift: 0.08, color: '#d946ef' },
+  { id: 13, symbol: 'LTIM', name: 'L&T Mindtree', sector: 'Technology', basePrice: 5200, volatility: 0.22, drift: 0.14, color: '#0ea5e9' },
+  { id: 14, symbol: 'DRREDDY', name: 'DR Reddy', sector: 'Healthcare', basePrice: 5800, volatility: 0.16, drift: 0.09, color: '#22d3ee' },
+  { id: 15, symbol: 'NTPC', name: 'NTPC', sector: 'Energy', basePrice: 340, volatility: 0.11, drift: 0.07, color: '#84cc16' },
+  { id: 16, symbol: 'BAJFINANCE', name: 'Bajaj Finance', sector: 'Finance', basePrice: 7200, volatility: 0.20, drift: 0.12, color: '#eab308' },
+  { id: 17, symbol: 'NESTLEIND', name: 'Nestlé India', sector: 'FMCG', basePrice: 2400, volatility: 0.08, drift: 0.06, color: '#fb923c' },
+  { id: 18, symbol: 'ZOMATO', name: 'Zomato', sector: 'Technology', basePrice: 185, volatility: 0.35, drift: 0.18, color: '#f43f5e' },
+  { id: 19, symbol: 'PAYTM', name: 'Paytm', sector: 'Fintech', basePrice: 650, volatility: 0.40, drift: 0.05, color: '#2dd4bf' },
+  { id: 20, symbol: 'CRYPTO', name: 'CryptoCoin', sector: 'Crypto', basePrice: 250, volatility: 0.80, drift: 0.45, color: '#fbbf24' },
 ];
 
 function gaussianRandom() {
@@ -61,7 +61,7 @@ function generatePriceHistory(stock, days = 30, pointsPerDay = 24) {
 
 function initializeStocks() {
   return STOCKS.map(stock => {
-    const history = generatePriceHistory(stock);
+    const history = generatePriceHistory(stock, 365, 24);
     const currentPrice = history[history.length - 1].price;
     const prevDayPrice = history[history.length - 25]?.price || stock.basePrice;
     const dayChange = currentPrice - prevDayPrice;
@@ -110,7 +110,7 @@ function tickPrice(stock) {
     dayLow: Math.min(stock.dayLow, rounded),
     dayChange: parseFloat(dayChange.toFixed(2)),
     dayChangePct: parseFloat(dayChangePct.toFixed(2)),
-    priceHistory: [...stock.priceHistory.slice(-720), newPoint],
+    priceHistory: [...stock.priceHistory.slice(-10080), newPoint],
     lastUpdate: Date.now(),
   };
 }

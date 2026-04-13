@@ -34,11 +34,6 @@ export default function Explore() {
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '4px' }}>Explore Stocks</h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Browse 20 simulated stocks and start trading</p>
-        {realtimeLoading && (
-          <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '8px' }}>
-            Refreshing live market prices...
-          </p>
-        )}
         {realtimeError && (
           <p style={{ color: 'var(--red)', fontSize: '12px', marginTop: '8px' }}>
             Live data error: {realtimeError}
@@ -98,7 +93,13 @@ export default function Explore() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <div className="stock-icon" style={{ background: `${stock.color}20`, color: stock.color }}>
-                    {stock.symbol.slice(2, 4)}
+                    {stock.name
+                      .split(' ')
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .map(word => word[0])
+                      .join('')
+                      .toUpperCase()}
                   </div>
                   <div>
                     <div style={{ fontWeight: 600, fontSize: '14px' }}>{stock.name}</div>

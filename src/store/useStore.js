@@ -439,11 +439,15 @@ const useStore = create((set, get) => ({
        const { api } = await import('../services/api.js');
        const scoreRes = await api.getFearScore(user._id);
        const historyRes = await api.getFearHistory(user._id);
+       const syncedScore = { score: scoreRes.score, fearClass: scoreRes.classification };
        
        set({ 
-         fearScore: { score: scoreRes.score, fearClass: scoreRes.classification },
+         fearScore: syncedScore,
          fearHistory: historyRes
        });
+       get().updateUser({ fearScore: syncedScore.score, fearClass: syncedScore.fearClass });
+       saveUserState(user, 'fearScore', syncedScore);
+       saveUserState(user, 'fearHistory', historyRes);
     } catch(e) { console.error('Failed to fetch fear data', e); }
   },
 

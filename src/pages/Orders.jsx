@@ -34,9 +34,19 @@ export default function Orders() {
             onClick={() => setFilter(f)}
             style={filter === f ? {
               background: f === 'BUY' ? 'var(--green-dim)' : f === 'SELL' ? 'var(--red-dim)' : f === 'PROFIT' ? 'var(--green-dim)' : f === 'LOSS' ? 'var(--red-dim)' : 'var(--accent-purple-dim)',
-              color: f === 'BUY' ? 'var(--green)' : f === 'SELL' ? 'var(--red)' : f === 'PROFIT' ? 'var(--green)' : f === 'LOSS' ? 'var(--red)' : 'var(--accent-purple-light)',
-              border: '1px solid transparent', borderRadius: 'var(--radius-full)', padding: '5px 16px',
-            } : { borderRadius: 'var(--radius-full)', border: '1px solid var(--border-default)', padding: '5px 16px' }}>
+              color: f === 'BUY' ? 'var(--green)' : f === 'SELL' ? 'var(--red)' : f === 'PROFIT' ? 'var(--green)' : f === 'LOSS' ? 'var(--red)' : 'var(--accent-purple)',
+              border: `1px solid ${f === 'BUY' || f === 'PROFIT' ? 'var(--green)' : f === 'SELL' || f === 'LOSS' ? 'var(--red)' : 'var(--accent-purple)'}`,
+              borderRadius: 'var(--radius-full)',
+              padding: '6px 16px',
+              fontWeight: 700,
+            } : {
+              borderRadius: 'var(--radius-full)',
+              border: '1px solid var(--border-strong)',
+              padding: '6px 16px',
+              color: 'var(--text-primary)',
+              fontWeight: 600,
+              background: 'var(--bg-secondary)',
+            }}>
             {f}
           </button>
         ))}
