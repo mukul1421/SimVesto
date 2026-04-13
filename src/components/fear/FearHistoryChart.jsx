@@ -33,10 +33,10 @@ export default function FearHistoryChart() {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div style={{ backgroundColor: '#fff', padding: '12px', border: '1px solid #ccc', borderRadius: '8px' }}>
-          <p style={{ margin: 0, fontWeight: 'bold', color: '#333' }}>{data.name}</p>
+        <div style={{ backgroundColor: 'var(--bg-surface)', padding: '12px', border: '1px solid var(--border-default)', borderRadius: '8px' }}>
+          <p style={{ margin: 0, fontWeight: 'bold', color: 'var(--text-primary)' }}>{data.name}</p>
           <p style={{ margin: '4px 0', color: payload[0].color }}>Score: {data.score} ({data.classification})</p>
-          <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>Action: {data.action}</p>
+          <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>Action: {data.action}</p>
         </div>
       );
     }
@@ -44,8 +44,8 @@ export default function FearHistoryChart() {
   };
 
   return (
-    <div style={{ width: '100%', height: '300px', padding: '24px', backgroundColor: '#fff', borderRadius: '16px', border: '1px solid #eee' }}>
-       <h3 style={{ margin: '0 0 16px 0', color: '#333' }}>Fear Score Progression</h3>
+    <div style={{ width: '100%', height: '300px', padding: '24px', backgroundColor: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border-default)' }}>
+       <h3 style={{ margin: '0 0 16px 0', color: 'var(--text-primary)' }}>Fear Score Progression</h3>
        <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data}>
           <defs>

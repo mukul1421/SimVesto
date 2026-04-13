@@ -12,6 +12,7 @@ import Advisor from './pages/Advisor';
 import Chatbot from './pages/Chatbot';
 import Insights from './pages/Insights';
 import Profile from './pages/Profile';
+import Glossary from './pages/Glossary';
 import AppLayout from './components/AppLayout';
 
 function ProtectedRoute({ children }) {
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="chat" element={<Chatbot />} />
         <Route path="insights" element={<Insights />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="glossary" element={<Glossary />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

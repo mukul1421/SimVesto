@@ -250,14 +250,38 @@ h6 {
 
 .card {
   background: var(--bg-surface);
-  border: 1px solid var(--border-default);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  border-left: 1px solid rgba(255,255,255,0.04);
+  border-right: 1px solid rgba(0,0,0,0.4);
+  border-bottom: 1px solid rgba(0,0,0,0.4);
   border-radius: var(--radius-lg);
   padding: 20px;
+  box-shadow: 8px 8px 16px rgba(0,0,0,0.4), -2px -2px 6px rgba(255,255,255,0.02);
   transition: all var(--transition-base);
 }
 
 .card:hover {
-  border-color: var(--border-strong);
+  transform: translateY(-2px);
+  box-shadow: 12px 12px 20px rgba(0,0,0,0.5), -2px -2px 8px rgba(255,255,255,0.03);
+}
+
+.card-3d {
+  background: linear-gradient(145deg, #1c1c28 0%, #111118 100%);
+  border-top: 1px solid rgba(255,255,255,0.12);
+  border-left: 1px solid rgba(255,255,255,0.05);
+  border-right: 1px solid rgba(0,0,0,0.8);
+  border-bottom: 1px solid rgba(0,0,0,0.8);
+  box-shadow: 15px 15px 40px rgba(0,0,0,0.6), -2px -2px 10px rgba(255,255,255,0.03);
+  border-radius: var(--radius-xl);
+  padding: 28px;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-base);
+}
+
+.card-3d:hover {
+  transform: translateY(-4px);
+  box-shadow: 20px 20px 50px rgba(0,0,0,0.8), -2px -2px 15px rgba(255,255,255,0.05);
 }
 
 .card-glow {
@@ -296,15 +320,22 @@ h6 {
 }
 
 .btn-primary {
-  background: var(--accent-purple);
+  background: linear-gradient(145deg, var(--accent-purple), #5b21b6);
   color: white;
-  box-shadow: var(--shadow-glow-purple);
+  border-top: 1px solid rgba(255,255,255,0.2);
+  border-left: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 6px 6px 12px rgba(0,0,0,0.5), -2px -2px 6px rgba(255,255,255,0.05);
 }
 
 .btn-primary:hover {
-  background: #8b5cf6;
-  box-shadow: 0 0 40px rgba(124, 58, 237, 0.25);
-  transform: translateY(-1px);
+  background: linear-gradient(145deg, #8b5cf6, #6d28d9);
+  box-shadow: 8px 8px 16px rgba(0,0,0,0.6), -2px -2px 8px rgba(255,255,255,0.08);
+  transform: translateY(-2px);
+}
+
+.btn-primary:active {
+  transform: translateY(2px);
+  box-shadow: inset 4px 4px 10px rgba(0,0,0,0.5);
 }
 
 .btn-primary:active {
@@ -312,14 +343,20 @@ h6 {
 }
 
 .btn-green {
-  background: var(--green);
+  background: linear-gradient(145deg, var(--green), #047857);
   color: white;
-  box-shadow: var(--shadow-glow-green);
+  border-top: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 6px 6px 12px rgba(0,0,0,0.5);
 }
 
 .btn-green:hover {
-  background: #059669;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 8px 8px 16px rgba(0,0,0,0.6);
+}
+
+.btn-green:active {
+  transform: translateY(2px);
+  box-shadow: inset 4px 4px 10px rgba(0,0,0,0.5);
 }
 
 .btn-red {

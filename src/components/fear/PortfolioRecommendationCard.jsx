@@ -31,9 +31,9 @@ export default function PortfolioRecommendations() {
              key={type}
              whileHover={{ y: -5 }}
              style={{
-               padding: '24px', backgroundColor: '#fff', borderRadius: '16px',
-               border: isMatch ? `2px solid ${style.color}` : '1px solid #eee',
-               boxShadow: isMatch ? `0 8px 30px ${style.color}30` : '0 4px 12px rgba(0,0,0,0.05)',
+               padding: '24px', backgroundColor: 'var(--bg-surface)', borderRadius: '16px',
+               border: isMatch ? `2px solid ${style.color}` : '1px solid var(--border-default)',
+               boxShadow: isMatch ? `0 8px 30px ${style.color}30` : '0 4px 12px rgba(0,0,0,0.2)',
                position: 'relative'
              }}
            >
@@ -43,23 +43,23 @@ export default function PortfolioRecommendations() {
                 </div>
              )}
              <div style={{ fontSize: '32px', marginBottom: '12px' }}>{style.icon}</div>
-             <h3 style={{ margin: '0 0 8px 0', color: '#333' }}>{p.title}</h3>
-             <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#666' }}>{p.description}</p>
+             <h3 style={{ margin: '0 0 8px 0', color: 'var(--text-primary)' }}>{p.title}</h3>
+             <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: 'var(--text-secondary)' }}>{p.description}</p>
              
-             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '8px', marginBottom: '8px' }}>
-                <span style={{ fontSize: '12px', color: '#888' }}>Risk Profile</span>
+             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '8px', marginBottom: '8px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Risk Profile</span>
                 <span style={{ fontSize: '13px', fontWeight: 'bold', color: style.color }}>{p.risk}</span>
              </div>
-             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '8px', marginBottom: '16px' }}>
-                <span style={{ fontSize: '12px', color: '#888' }}>Expected Return</span>
-                <span style={{ fontSize: '13px', fontWeight: 'bold' }}>{p.expectedReturn}</span>
+             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '8px', marginBottom: '16px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Expected Return</span>
+                <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-primary)' }}>{p.expectedReturn}</span>
              </div>
 
-             <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#555', marginBottom: '8px' }}>ALLOCATION</div>
+             <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '8px' }}>ALLOCATION</div>
              {p.allocation.map(a => (
                 <div key={a.asset} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '13px', color: '#666' }}>{a.asset}</span>
-                  <span style={{ fontSize: '13px', fontWeight: 'bold' }}>{a.pct}%</span>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{a.asset}</span>
+                  <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-primary)' }}>{a.pct}%</span>
                 </div>
              ))}
            </motion.div>

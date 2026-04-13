@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import useStore from '../store/useStore';
+import GlossaryText from '../components/glossary/GlossaryHighlighter';
 
 const SECTORS = ['All', 'Technology', 'Finance', 'Energy', 'Healthcare', 'FMCG', 'Automobile', 'Telecom', 'Infrastructure', 'Fintech', 'Crypto'];
 
@@ -32,8 +33,8 @@ export default function Explore() {
   return (
     <div>
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '4px' }}>Explore Stocks</h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Browse 20 simulated stocks and start trading</p>
+        <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '4px' }}><GlossaryText text="Explore Stocks" /></h1>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}><GlossaryText text="Browse 20 simulated stocks and start trading" /></p>
         {realtimeLoading && (
           <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '8px' }}>
             Refreshing live market prices...

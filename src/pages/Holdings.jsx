@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import useStore from '../store/useStore';
 import { generateNarration } from '../engine/aiNarrator';
+import GlossaryText from '../components/glossary/GlossaryHighlighter';
 
 const COLORS = ['#7c3aed', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#ec4899', '#06b6d4', '#8b5cf6', '#f97316', '#14b8a6'];
 
@@ -67,7 +68,7 @@ export default function Holdings() {
     <div>
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '4px' }}>Holdings</h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Your current portfolio and positions</p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}><GlossaryText text="Your current portfolio and positions" /></p>
       </motion.div>
 
       {holdings.length === 0 ? (
@@ -131,7 +132,7 @@ export default function Holdings() {
                 </div>
               ) : (
                 <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.7 }}>
-                  Click "Analyze" to get a personalized AI breakdown of your portfolio health, diversification, and trade patterns.
+                  <GlossaryText text="Click 'Analyze' to get a personalized AI breakdown of your portfolio health, diversification, and trade patterns." />
                 </div>
               )}
             </motion.div>

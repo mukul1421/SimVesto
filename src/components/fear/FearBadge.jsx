@@ -32,9 +32,9 @@ export default function FearBadge({ score = 80, size = 'medium' }) {
         height: styles.height,
         padding: styles.padding,
         borderRadius: '16px',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: 'var(--bg-surface)',
         border: `2px solid ${base}`,
-        boxShadow: hovered ? `0 8px 24px ${base}40` : '0 4px 12px rgba(0,0,0,0.05)',
+        boxShadow: hovered ? `0 8px 24px ${base}40` : '0 4px 12px rgba(0,0,0,0.2)',
         cursor: 'pointer',
         display: 'flex',
         flexDirection: 'column',
@@ -45,7 +45,7 @@ export default function FearBadge({ score = 80, size = 'medium' }) {
         overflow: 'hidden'
       }}
     >
-      <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#666', marginBottom: '8px' }}>
+      <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '8px' }}>
         FEAR SCORE
       </div>
       
@@ -54,7 +54,7 @@ export default function FearBadge({ score = 80, size = 'medium' }) {
         <span style={{ fontSize: '14px', marginLeft: '4px', opacity: 0.7 }}>/100</span>
       </div>
 
-      <div style={{ width: '100%', height: '8px', backgroundColor: '#F5F5F5', borderRadius: '4px', margin: '12px 0' }}>
+      <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--bg-surface-2)', borderRadius: '4px', margin: '12px 0' }}>
         <motion.div
            initial={{ width: 0 }}
            animate={{ width: `${score}%` }}
@@ -63,7 +63,7 @@ export default function FearBadge({ score = 80, size = 'medium' }) {
         />
       </div>
 
-      <div style={{ fontSize: styles.fontText, fontWeight: 'bold', color: '#333' }}>
+      <div style={{ fontSize: styles.fontText, fontWeight: 'bold', color: 'var(--text-primary)' }}>
         {text} FEAR
       </div>
 

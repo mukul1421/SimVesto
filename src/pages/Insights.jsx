@@ -7,6 +7,7 @@ import FearBadge from '../components/fear/FearBadge';
 import FearHistoryChart from '../components/fear/FearHistoryChart';
 import MilestoneTracker from '../components/fear/MilestoneTracker';
 import PortfolioRecommendations from '../components/fear/PortfolioRecommendationCard';
+import GlossaryText from '../components/glossary/GlossaryHighlighter';
 
 export default function Insights() {
   const user = useStore(s => s.user);
@@ -46,7 +47,7 @@ export default function Insights() {
     <div>
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '4px' }}>Insights & Recommendations 📈</h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Your behavioral analytics and confidence journey</p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}><GlossaryText text="Your behavioral analytics and confidence journey" /></p>
       </motion.div>
 
       {/* Hero: Replace old SVGs with our new robust Badge */}
@@ -64,7 +65,7 @@ export default function Insights() {
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ marginBottom: '32px' }}>
          <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px' }}>Recommended Portfolios</h2>
-         <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>Based on your current fear class, we recommend the following portfolio allocations.</p>
+         <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}><GlossaryText text="Based on your current fear class, we recommend the following portfolio allocations." /></p>
          <PortfolioRecommendations />
       </motion.div>
 

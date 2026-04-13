@@ -55,6 +55,13 @@ const useStore = create((set, get) => ({
   user: initialUser,
   isAuthenticated: loadState('isAuthenticated', false),
   geminiApiKey: loadState('geminiApiKey', ''),
+  glossaryMode: loadState('glossaryMode', false),
+
+  toggleGlossaryMode: () => {
+    const next = !get().glossaryMode;
+    set({ glossaryMode: next });
+    saveState('glossaryMode', next);
+  },
 
   setUser: (user) => {
     set({
