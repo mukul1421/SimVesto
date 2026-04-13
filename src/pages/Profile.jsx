@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import useStore from '../store/useStore';
 import { getFearColor, getFearLabel } from '../engine/fearEngine';
+import Logo from '../components/Logo';
 
 export default function Profile() {
   const user = useStore(s => s.user);
@@ -194,12 +195,9 @@ export default function Profile() {
                   <div style={{ fontSize: '20px', fontWeight: 700 }}>SimVesto Confidence Card</div>
                   <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{user?.name}</div>
                 </div>
-                <div style={{
-                  width: '48px', height: '48px', borderRadius: 'var(--radius-md)',
-                  background: 'linear-gradient(135deg, var(--accent-purple), #a855f7)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '18px', fontWeight: 800, color: 'white',
-                }}>SV</div>
+                <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Logo width="36" height="36" />
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '32px', marginBottom: '24px' }}>

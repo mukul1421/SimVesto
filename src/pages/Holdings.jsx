@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import useStore from '../store/useStore';
-import { generateNarration } from '../engine/aiNarrator';
 
 const COLORS = ['#7c3aed', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#ec4899', '#06b6d4', '#8b5cf6', '#f97316', '#14b8a6'];
 
@@ -12,26 +11,30 @@ export default function Holdings() {
   const stocks = useStore(s => s.stocks);
   const user = useStore(s => s.user);
   const orders = useStore(s => s.orders);
-  const fearScore = useStore(s => s.fearScore);
-  const geminiApiKey = useStore(s => s.geminiApiKey);
   const navigate = useNavigate();
   const [aiText, setAiText] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [deepDiveList, setDeepDiveList] = useState([]);
+  const [deepDiveLoading, setDeepDiveLoading] = useState(false);
 
   const formatSymbol = (value) => String(value || '').replace(/^IQ/, '');
-  const [aiLoading, setAiLoading] = useState(false);
 
   const enrichedHoldings = useMemo(() => {
     return holdings.map(h => {
       const stock = stocks.find(s => s.id === h.stockId);
-      const currentValue = stock ? h.quantity * stock.currentPrice : h.currentValue || 0;
+      const currentPrice = stock?.currentPrice || h.currentPrice || h.avgBuyPrice;
+      const currentValue = h.quantity * currentPrice;
       const investedValue = h.quantity * h.avgBuyPrice;
+      const pnl = currentValue - investedValue;
+      const pnlPct = investedValue > 0 ? ((pnl / investedValue) * 100) : 0;
+      
       return {
         ...h,
-        currentPrice: stock?.currentPrice || h.currentPrice,
+        currentPrice: parseFloat(currentPrice?.toFixed(2) || 0),
         currentValue: parseFloat(currentValue.toFixed(2)),
         investedValue: parseFloat(investedValue.toFixed(2)),
-        pnl: parseFloat((currentValue - investedValue).toFixed(2)),
-        pnlPct: parseFloat(((currentValue - investedValue) / investedValue * 100).toFixed(2)),
+        pnl: parseFloat(pnl.toFixed(2)),
+        pnlPct: parseFloat(pnlPct.toFixed(2)),
         color: stock?.color || '#7c3aed',
       };
     });
@@ -46,23 +49,85 @@ export default function Holdings() {
     name: formatSymbol(h.symbol), value: h.currentValue, color: COLORS[i % COLORS.length],
   }));
 
+  const formatAnalysisText = (text) => {
+    if (!text) return null;
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, idx) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={idx} style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  };
+
+  const analyzeDeepDive = async () => {
+    setDeepDiveLoading(true);
+    const nextDepth = deepDiveList.length + 2; // depth 2, 3, 4, etc.
+    
+    // Add a new empty dive object
+    setDeepDiveList(prev => [...prev, { depth: nextDepth, text: '' }]);
+    
+    try {
+      const { api } = await import('../services/api.js');
+      const response = await api.analyzePortfolio(nextDepth);
+      
+      if (response.analysis) {
+        const text = response.analysis;
+        let streamedText = '';
+        
+        // Stream the response char by char
+        for (let i = 0; i < text.length; i++) {
+          await new Promise(r => setTimeout(r, 8 + Math.random() * 10));
+          streamedText = text.slice(0, i + 1);
+          setDeepDiveList(prev => {
+            const updated = [...prev];
+            updated[updated.length - 1] = { depth: nextDepth, text: streamedText };
+            return updated;
+          });
+        }
+      } else {
+        setDeepDiveList(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1].text = 'Could not generate deep dive analysis.';
+          return updated;
+        });
+      }
+    } catch (error) {
+      console.error('Deep dive error:', error);
+      setDeepDiveList(prev => {
+        const updated = [...prev];
+        updated[updated.length - 1].text = 'Error generating deep dive analysis.';
+        return updated;
+      });
+    } finally {
+      setDeepDiveLoading(false);
+    }
+  };
+
   const analyzePortfolio = async () => {
     setAiLoading(true);
-    setAiText('');
-    await generateNarration({
-      apiKey: geminiApiKey,
-      context: {
-        type: 'portfolio_analysis',
-        fearScore: fearScore.score,
-        fearClass: fearScore.fearClass,
-        literacyScore: user?.literacyScore || 5,
-        portfolio: enrichedHoldings.map(h => ({ symbol: h.symbol, qty: h.quantity, pnl: h.pnl, value: h.currentValue })),
-        tradeHistory: orders.slice(0, 10),
-        currentPnL: totalPnL.toFixed(2),
-      },
-      onToken: (text) => setAiText(text),
-    });
-    setAiLoading(false);
+    setAiText('loading');
+    try {
+      const { api } = await import('../services/api.js');
+      const response = await api.analyzePortfolio();
+      
+      if (response.analysis) {
+        setAiText(''); // Clear loading state
+        const text = response.analysis;
+        // Stream the response char by char
+        for (let i = 0; i < text.length; i++) {
+          await new Promise(r => setTimeout(r, 10 + Math.random() * 12));
+          setAiText(text.slice(0, i + 1));
+        }
+      } else {
+        setAiText('Could not generate analysis. Please try again.');
+      }
+    } catch (error) {
+      console.error('Portfolio analysis error:', error);
+      setAiText('Error connecting to analysis service. Please try again.');
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   return (
@@ -127,13 +192,60 @@ export default function Holdings() {
                   {aiLoading ? <span className="spinner" style={{ width: '14px', height: '14px' }} /> : 'Analyze'}
                 </button>
               </div>
-              {aiText ? (
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.8, borderLeft: '3px solid var(--accent-purple)', paddingLeft: '14px' }}>
-                  {aiText}{aiLoading && <span style={{ animation: 'pulse 1s infinite' }}>▊</span>}
+              
+              {aiLoading && aiText === 'loading' ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  <span className="spinner" style={{ width: '16px', height: '16px' }} />
+                  Analyzing your portfolio...
                 </div>
+              ) : aiText && aiText !== 'loading' ? (
+                <>
+                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.8, borderLeft: '3px solid var(--accent-purple)', paddingLeft: '14px', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: '280px', overflowY: 'auto', paddingRight: '8px', background: 'rgba(124, 58, 237, 0.03)', padding: '12px 8px 12px 14px', borderRadius: 'var(--radius-md)' }}>
+                    {formatAnalysisText(aiText)}{aiLoading && <span style={{ animation: 'pulse 1s infinite', marginLeft: '4px' }}>▊</span>}
+                  </div>
+                  
+                  {/* Deep Dive Analyses Stacked Below Main Analysis */}
+                  {deepDiveList.length > 0 && (
+                    <div style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
+                      {deepDiveList.map((dive, idx) => (
+                        <motion.div 
+                          key={idx}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.1 }}
+                          style={{ marginBottom: idx < deepDiveList.length - 1 ? '16px' : '0', paddingBottom: idx < deepDiveList.length - 1 ? '16px' : '0', borderBottom: idx < deepDiveList.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}
+                        >
+                          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            💎 Level {dive.depth} Deep Dive {idx === deepDiveList.length - 1 && deepDiveLoading && <span className="spinner" style={{ width: '10px', height: '10px', display: 'inline-block', marginLeft: '6px' }} />}
+                          </div>
+                          <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.8, borderLeft: '3px solid var(--accent-blue)', paddingLeft: '14px', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: '250px', overflowY: 'auto', paddingRight: '8px', background: 'rgba(59, 130, 246, 0.05)', padding: '12px 12px 12px 14px', borderRadius: 'var(--radius-md)' }}>
+                            {formatAnalysisText(dive.text)}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Get Deeper Insights Button */}
+                  <button 
+                    className="btn btn-outline btn-sm" 
+                    onClick={analyzeDeepDive}
+                    disabled={deepDiveLoading}
+                    style={{ marginTop: '12px', width: '100%' }}
+                  >
+                    {deepDiveLoading ? (
+                      <>
+                        <span className="spinner" style={{ width: '12px', height: '12px', marginRight: '6px', display: 'inline-block' }} />
+                        Generating Level {deepDiveList.length + 2} Deep Dive...
+                      </>
+                    ) : (
+                      `💎 Get Deeper Insights (Level ${deepDiveList.length + 2})`
+                    )}
+                  </button>
+                </>
               ) : (
                 <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.7 }}>
-                  Click "Analyze" to get a personalized AI breakdown of your portfolio health, diversification, and trade patterns.
+                  Click "Analyze" to get a comprehensive AI assessment of your portfolio health, patterns, and actionable next steps. Then unlock deeper insights with the Deep Dive feature.
                 </div>
               )}
             </motion.div>
@@ -182,8 +294,8 @@ export default function Holdings() {
                     <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>₹{h.currentValue?.toLocaleString()}</td>
                     <td>
                       <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: h.pnl >= 0 ? 'var(--green)' : 'var(--red)' }}>
-                        {h.pnl >= 0 ? '+' : ''}₹{h.pnl?.toFixed(2)}<br />
-                        <span style={{ fontSize: '11px' }}>({h.pnlPct?.toFixed(2)}%)</span>
+                        {h.pnl >= 0 ? '+₹' : '−₹'}{Math.abs(h.pnl)?.toFixed(2)}<br />
+                        <span style={{ fontSize: '11px' }}>({h.pnlPct >= 0 ? '+' : '−'}{Math.abs(h.pnlPct)?.toFixed(2)}%)</span>
                       </span>
                     </td>
                     <td>

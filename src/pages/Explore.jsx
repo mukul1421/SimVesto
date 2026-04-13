@@ -89,9 +89,9 @@ export default function Explore() {
               transition={{ delay: i * 0.03, duration: 0.3 }}
               onClick={() => navigate(`/app/trade/${stock.symbol}`)}
               whileHover={{ scale: 1.01, borderColor: 'var(--border-strong)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <div className="stock-icon" style={{ background: `${stock.color}20`, color: stock.color }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', minWidth: 0, flex: 1 }}>
+                  <div className="stock-icon" style={{ background: `${stock.color}20`, color: stock.color, flexShrink: 0 }}>
                     {stock.name
                       .split(' ')
                       .filter(Boolean)
@@ -100,9 +100,9 @@ export default function Explore() {
                       .join('')
                       .toUpperCase()}
                   </div>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: '14px' }}>{stock.name}</div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-muted)' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stock.name}</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {stock.symbol?.replace(/^IQ/, '')} · {stock.sector}
                     </div>
                   </div>

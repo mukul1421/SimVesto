@@ -31,12 +31,13 @@ function gaussianRandom() {
   return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
 }
 
-function generatePriceHistory(stock, days = 30, pointsPerDay = 24) {
+function generatePriceHistory(stock, days = 365, pointsPerDay = 1) {
   const history = [];
   let price = stock.basePrice;
   const dt = 1 / 252 / pointsPerDay;
   const dailyDrift = stock.drift;
   const dailyVol = stock.volatility;
+  const now = Date.now();
 
   for (let d = 0; d < days; d++) {
     for (let p = 0; p < pointsPerDay; p++) {
@@ -44,7 +45,10 @@ function generatePriceHistory(stock, days = 30, pointsPerDay = 24) {
       const dS = price * (dailyDrift * dt + dailyVol * epsilon * Math.sqrt(dt));
       price = Math.max(price + dS, price * 0.5);
 
-      const timestamp = Date.now() - (days - d) * 86400000 + p * (86400000 / pointsPerDay);
+      // Generate PAST timestamps going backwards from now
+      const millisPerPoint = (86400000 / pointsPerDay);
+      const timestamp = now - (days - d - 1) * 86400000 - (pointsPerDay - p - 1) * millisPerPoint;
+      
       history.push({
         time: timestamp,
         price: parseFloat(price.toFixed(2)),
@@ -56,7 +60,7 @@ function generatePriceHistory(stock, days = 30, pointsPerDay = 24) {
       });
     }
   }
-  return history;
+  return history.sort((a, b) => a.time - b.time);
 }
 
 function initializeStocks() {

@@ -21,31 +21,108 @@ const formatSymbol = (value) => String(value || '').replace(/^IQ/, '');
 const buildChartSlices = (stock, timeframe) => {
   if (!stock) return [];
   const history = stock.priceHistory || [];
-  let sliceCount;
+  let filteredHistory = [];
+  const now = Date.now();
+
+  // Filter and aggregate data based on timeframe
   switch (timeframe) {
-    case '1D': sliceCount = 24; break;
-    case '1W': sliceCount = 168; break;
-    case '1M': sliceCount = Math.min(history.length, 720); break;
-    case '3M': sliceCount = history.length; break;
-    case '1Y': sliceCount = history.length; break;
-    default: sliceCount = 24;
+    case '1D': {
+      // Last 24 hours, show hourly candles
+      const oneDayAgo = now - 86400000;
+      filteredHistory = history.filter(h => h.time >= oneDayAgo);
+      break;
+    }
+    case '1W': {
+      // Last 7 days, show 4-hourly candles (combine 4 hourly points into one)
+      const oneWeekAgo = now - 7 * 86400000;
+      filteredHistory = history.filter(h => h.time >= oneWeekAgo);
+      // Aggregate into 4-hour candles
+      filteredHistory = aggregateCandles(filteredHistory, 4);
+      break;
+    }
+    case '1M': {
+      // Last 30 days, show daily candles
+      const oneMonthAgo = now - 30 * 86400000;
+      filteredHistory = history.filter(h => h.time >= oneMonthAgo);
+      // Aggregate into daily candles
+      filteredHistory = aggregateCandles(filteredHistory, 24);
+      break;
+    }
+    case '3M': {
+      // Last 90 days, show daily candles
+      const threeMonthsAgo = now - 90 * 86400000;
+      filteredHistory = history.filter(h => h.time >= threeMonthsAgo);
+      filteredHistory = aggregateCandles(filteredHistory, 24);
+      break;
+    }
+    case '1Y': {
+      // Last 365 days, show daily candles
+      const oneYearAgo = now - 365 * 86400000;
+      filteredHistory = history.filter(h => h.time >= oneYearAgo);
+      filteredHistory = aggregateCandles(filteredHistory, 24);
+      break;
+    }
+    default:
+      filteredHistory = history.slice(-24);
   }
 
-  return history.slice(-sliceCount).map((point, index, slice) => {
+  return filteredHistory.map((point, index, slice) => {
     const previous = slice[index - 1]?.price ?? point.price;
+    const timeDate = new Date(point.time);
+    
+    let timeString = '';
+    if (timeframe === '1D') {
+      // Show HH:MM
+      timeString = timeDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (timeframe === '1W') {
+      // Show MMM DD HH:MM
+      timeString = timeDate.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + 
+                   timeDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else {
+      // Show MMM DD for 1M, 3M, 1Y
+      timeString = timeDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+    
     return {
       idx: index,
-      time: new Date(point.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      open: previous,
-      close: point.price,
+      time: timeString,
+      open: point.open,
+      close: point.close,
       high: point.high,
       low: point.low,
       price: point.price,
       volume: point.volume,
-      change: point.price - previous,
-      changePct: previous ? ((point.price - previous) / previous) * 100 : 0,
+      change: point.close - previous,
+      changePct: previous ? ((point.close - previous) / previous) * 100 : 0,
     };
   });
+};
+
+// Helper function to aggregate candles
+const aggregateCandles = (data, intervalsToAggregate) => {
+  const aggregated = [];
+  for (let i = 0; i < data.length; i += intervalsToAggregate) {
+    const batch = data.slice(i, i + intervalsToAggregate);
+    if (batch.length === 0) continue;
+    
+    const open = batch[0].open;
+    const close = batch[batch.length - 1].close;
+    const high = Math.max(...batch.map(b => b.high));
+    const low = Math.min(...batch.map(b => b.low));
+    const volume = batch.reduce((sum, b) => sum + b.volume, 0);
+    const time = batch[batch.length - 1].time;
+    
+    aggregated.push({
+      open,
+      close,
+      high,
+      low,
+      price: close,
+      volume,
+      time,
+    });
+  }
+  return aggregated;
 };
 
 function CandleChart({ data, holding, isUp }) {

@@ -2,6 +2,8 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import useStore from '../store/useStore';
 import FearFeedbackModal from './fear/FearFeedbackModal';
+import Logo from './Logo';
+import GlossaryHighlighter from './GlossaryHighlighter';
 
 const NAV_ITEMS = [
   { path: '/app', label: 'Dashboard', end: true },
@@ -30,6 +32,8 @@ export default function AppLayout() {
   
   const fearModalData = useStore(s => s.fearModalData);
   const clearFearModal = useStore(s => s.clearFearModal);
+  const glossaryEnabled = useStore(s => s.glossaryEnabled);
+  const toggleGlossary = useStore(s => s.toggleGlossary);
 
   useEffect(() => {
     startRealtimeSync(4000);
@@ -66,7 +70,7 @@ export default function AppLayout() {
       <header className="top-navbar">
         <div className="navbar-left">
           <div className="navbar-logo" onClick={() => navigate('/app')}>
-            <div className="logo-icon">SV</div>
+            <Logo width="32" height="32" />
             <span>SimVesto</span>
           </div>
           
@@ -130,6 +134,23 @@ export default function AppLayout() {
         </div>
 
         <div className="navbar-right">
+          <button
+            className={`glossary-toggle ${glossaryEnabled ? 'on' : ''}`}
+            onClick={toggleGlossary}
+            title="Toggle glossary term helper"
+            type="button"
+          >
+            <span className="glossary-toggle-label">Glossary</span>
+            <span className="glossary-toggle-state">{glossaryEnabled ? 'ON' : 'OFF'}</span>
+          </button>
+          <button
+            className="glossary-help-btn"
+            type="button"
+            title="Open glossary page"
+            onClick={() => navigate('/app/glossary')}
+          >
+            ?
+          </button>
           <div className="coin-display">
             <div className="coin-icon">₹</div>
             <span>{(user?.iqCoins || 0).toLocaleString()}</span>
@@ -163,6 +184,8 @@ export default function AppLayout() {
       <main style={{ padding: '32px 24px', flex: 1, minWidth: 0 }}>
         <Outlet />
       </main>
+
+      <GlossaryHighlighter enabled={glossaryEnabled} />
 
       <FearFeedbackModal 
         isOpen={!!fearModalData} 

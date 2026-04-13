@@ -84,6 +84,7 @@ const useStore = create((set, get) => ({
   user: initialUser,
   isAuthenticated: loadState('isAuthenticated', false),
   geminiApiKey: loadState('geminiApiKey', ''),
+  glossaryEnabled: loadState('glossaryEnabled', false),
 
   setUser: (user) => {
     const loadedCoinHistory = loadUserState(user, 'coinHistory', []);
@@ -129,6 +130,17 @@ const useStore = create((set, get) => ({
   setGeminiApiKey: (key) => {
     set({ geminiApiKey: key });
     saveState('geminiApiKey', key);
+  },
+
+  setGlossaryEnabled: (enabled) => {
+    set({ glossaryEnabled: !!enabled });
+    saveState('glossaryEnabled', !!enabled);
+  },
+
+  toggleGlossary: () => {
+    const nextValue = !get().glossaryEnabled;
+    set({ glossaryEnabled: nextValue });
+    saveState('glossaryEnabled', nextValue);
   },
 
   addCoinHistoryEvent: (event) => {

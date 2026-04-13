@@ -30,7 +30,6 @@ const STEPS = [
 export default function Landing() {
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
-  const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -41,18 +40,16 @@ export default function Landing() {
   }, []);
 
   return (
-    <div className={`landing-groww ${isDark ? 'dark' : ''}`}>
+    <div className="landing-groww">
       {/* Background 3D Canvas from shared component */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 0 }}>
-        <BackgroundGrid isDark={isDark} />
+        <BackgroundGrid />
 
         {/* Soft radial overlay to ensure text remains readable */}
         <div style={{
           position: 'absolute',
           inset: 0,
-          background: isDark 
-            ? 'radial-gradient(circle at top center, rgba(15,23,42,0.8) 0%, rgba(15,23,42,0.2) 100%)'
-            : 'radial-gradient(circle at top center, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.2) 100%)',
+          background: 'radial-gradient(circle at top center, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.2) 100%)',
           pointerEvents: 'none',
           transition: 'background 0.3s ease'
         }} />
@@ -68,24 +65,6 @@ export default function Landing() {
         <div className="nav-links" style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
           <a href="#features" className="nav-link">Features</a>
           <a href="#how-it-works" className="nav-link">How it Works</a>
-          
-          <div style={{ width: '1px', height: '24px', background: 'var(--groww-border)' }} />
-          
-          <button 
-            onClick={() => setIsDark(!isDark)}
-            style={{
-              padding: '8px', 
-              borderRadius: '50%', 
-              background: 'var(--groww-surface)',
-              border: '1px solid var(--groww-border)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer',
-              color: 'var(--groww-text)'
-            }}
-            title="Toggle Dark Mode"
-          >
-            {isDark ? '☀️' : '🌙'}
-          </button>
 
           <button
             className="nav-link"
@@ -227,7 +206,7 @@ export default function Landing() {
       <section id="features" style={{
         position: 'relative',
         zIndex: 10,
-        background: isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(248, 250, 252, 0.95)',
+        background: 'rgba(248, 250, 252, 0.95)',
         backdropFilter: 'blur(20px)',
         padding: '120px 40px',
         borderTop: '1px solid var(--groww-border)'

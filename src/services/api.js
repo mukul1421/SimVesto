@@ -46,6 +46,13 @@ export const api = {
     const res = await fetch(`${BASE_URL}/portfolio`, { headers: getAuthHeaders() });
     return res.json();
   },
+  analyzePortfolio: async (depth = 1) => {
+    const res = await fetch(`${BASE_URL}/portfolio/analyze?depth=${depth}`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    return res.json();
+  },
 
   // Trade
   buyStock: async (symbol, quantity, price) => {
