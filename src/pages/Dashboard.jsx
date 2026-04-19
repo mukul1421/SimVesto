@@ -138,8 +138,8 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Main Grid */}
-      <div className="grid-2" style={{ gap: '20px', marginBottom: '24px' }}>
+      {/* Main Graph */}
+      <div style={{ marginBottom: '24px' }}>
         {/* Portfolio Chart */}
         <motion.div className="card" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -152,7 +152,7 @@ export default function Dashboard() {
             <span style={{ color: 'var(--text-secondary)' }}>Realized: <strong style={{ color: realizedPnL >= 0 ? 'var(--green)' : 'var(--red)' }}>{realizedPnL >= 0 ? '+' : ''}₹{realizedPnL.toFixed(2)}</strong></span>
             <span style={{ color: 'var(--text-secondary)' }}>Unrealized: <strong style={{ color: unrealizedPnL >= 0 ? 'var(--green)' : 'var(--red)' }}>{unrealizedPnL >= 0 ? '+' : ''}₹{unrealizedPnL.toFixed(2)}</strong></span>
           </div>
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={portfolioChartData}>
               <defs>
                 <linearGradient id="trendArea" x1="0" y1="0" x2="0" y2="1">
@@ -172,37 +172,6 @@ export default function Dashboard() {
               <Line type="monotone" dataKey="invested" stroke="#7fb3e6" strokeWidth={1.7} strokeDasharray="5 4" dot={false} name="invested" />
             </AreaChart>
           </ResponsiveContainer>
-        </motion.div>
-
-        {/* Fear Score + Quick Actions */}
-        <motion.div className="card" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
-          <div style={{ display: 'flex', gap: '24px', alignItems: 'center', marginBottom: '20px' }}>
-            {/* Real Fear Badge */}
-            <FearBadge score={fearScore.score} size="medium" />
-            <div>
-              <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '4px' }}>{fearLabel}</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                {fearScore.fearClass === 'HIGH' ? 'Take it slow. Each simulation builds confidence.' :
-                  fearScore.fearClass === 'LOW' ? 'You\'re ready for diverse strategies!' :
-                    'Growing steadily. Keep exploring different scenarios.'}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <button className="btn btn-primary btn-sm" onClick={() => navigate('/app/explore')}>
-              🔍 Explore Stocks
-            </button>
-            <button className="btn btn-outline btn-sm" onClick={() => navigate('/app/advisor')}>
-              🤖 AI Advisor
-            </button>
-            <button className="btn btn-outline btn-sm" onClick={() => navigate('/app/holdings')}>
-              💼 Holdings
-            </button>
-            <button className="btn btn-outline btn-sm" onClick={() => navigate('/app/insights')}>
-              📈 Insights
-            </button>
-          </div>
         </motion.div>
       </div>
 

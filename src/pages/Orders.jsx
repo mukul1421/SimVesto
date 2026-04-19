@@ -16,7 +16,7 @@ export default function Orders() {
     if (filter === 'ALL') return orders;
     if (filter === 'BUY') return orders.filter(o => o.type === 'BUY');
     if (filter === 'SELL') return orders.filter(o => o.type === 'SELL');
-    if (filter === 'PROFIT') return orders.filter(o => o.pnl > 0);
+    if (filter === 'PROFIT') return orders.filter(o => o.pnl !== undefined && o.pnl >= 0);
     if (filter === 'LOSS') return orders.filter(o => o.pnl !== undefined && o.pnl < 0);
     return orders;
   }, [orders, filter]);

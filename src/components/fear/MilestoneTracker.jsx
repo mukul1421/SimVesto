@@ -17,9 +17,9 @@ export default function MilestoneTracker() {
   const score = useStore(s => s.user?.fearScore) || 80;
 
   return (
-    <div style={{ padding: '24px', backgroundColor: '#fff', borderRadius: '16px', border: '1px solid #eee' }}>
+    <div style={{ padding: '24px', backgroundColor: 'var(--bg-secondary)', borderRadius: '16px', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}>
        <h3 style={{ margin: '0 0 8px 0' }}>Fear Milestones</h3>
-       <p style={{ margin: '0 0 24px 0', fontSize: '14px', color: '#666' }}>
+       <p style={{ margin: '0 0 24px 0', fontSize: '14px', color: 'var(--text-muted)' }}>
          Unlock badges as your fear score decreases towards 0. Current: <strong>{score}</strong>
        </p>
 
@@ -32,23 +32,23 @@ export default function MilestoneTracker() {
                   whileHover={{ scale: 1.05 }}
                   style={{
                     flexShrink: 0, width: '120px', height: '140px',
-                    backgroundColor: unlocked ? '#F0FDF4' : '#FAFAFA',
-                    border: `1px solid ${unlocked ? '#4CAF50' : '#E0E0E0'}`,
+                    backgroundColor: unlocked ? 'var(--groww-teal-dim)' : 'var(--bg-surface-2)',
+                    border: `1px solid ${unlocked ? 'var(--groww-teal)' : 'var(--border-default)'}`,
                     borderRadius: '12px', display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center', opacity: unlocked ? 1 : 0.5,
                     position: 'relative'
                   }}
                 >
                   <div style={{ fontSize: '32px', marginBottom: '8px' }}>{unlocked ? m.icon : '🔒'}</div>
-                  <div style={{ fontSize: '12px', fontWeight: 'bold', textAlign: 'center', padding: '0 8px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 'bold', textAlign: 'center', padding: '0 8px', color: 'var(--text-primary)' }}>
                     {m.label}
                   </div>
-                  <div style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>
                     Score &le; {m.target}
                   </div>
                   
                   {unlocked && (
-                     <div style={{ position: 'absolute', top: '8px', right: '8px', color: '#4CAF50', fontSize: '12px' }}>
+                     <div style={{ position: 'absolute', top: '8px', right: '8px', color: 'var(--groww-teal)', fontSize: '12px' }}>
                        ✓
                      </div>
                   )}

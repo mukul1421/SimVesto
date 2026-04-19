@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { path: '/app/orders', label: 'Orders' },
   { path: '/app/advisor', label: 'AI Advisor' },
   { path: '/app/chat', label: 'Chatbot' },
+  { path: '/app/analytics', label: '⚡ Market Intel' },
   { path: '/app/insights', label: 'Insights' },
 ];
 
@@ -34,6 +35,13 @@ export default function AppLayout() {
   const clearFearModal = useStore(s => s.clearFearModal);
   const glossaryEnabled = useStore(s => s.glossaryEnabled);
   const toggleGlossary = useStore(s => s.toggleGlossary);
+  const theme = useStore(s => s.theme);
+  const toggleTheme = useStore(s => s.toggleTheme);
+
+  useEffect(() => {
+    if (theme === 'dark') document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  }, []);
 
   useEffect(() => {
     startRealtimeSync(4000);
@@ -88,7 +96,7 @@ export default function AppLayout() {
           </nav>
         </div>
 
-        <div style={{ position: 'relative', flex: 1, maxWidth: '400px', margin: '0 24px' }}>
+        <div style={{ position: 'relative', flex: 1, maxWidth: '280px', margin: '0 12px' }}>
           <div className="navbar-search">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             <input
@@ -143,6 +151,20 @@ export default function AppLayout() {
             <span className="glossary-toggle-label">Glossary</span>
             <span className="glossary-toggle-state">{glossaryEnabled ? 'ON' : 'OFF'}</span>
           </button>
+          
+          <button
+            className="navbar-theme-btn"
+            onClick={toggleTheme}
+            title="Toggle Light/Dark Theme"
+            style={{ width: '34px', height: '34px', borderRadius: '50%', border: '1px solid var(--border-default)', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s ease', color: 'var(--text-primary)' }}
+          >
+            {theme === 'dark' ? (
+               <svg style={{width:'18px', height:'18px'}} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            ) : (
+               <svg style={{width:'18px', height:'18px'}} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+            )}
+          </button>
+          
           <button
             className="glossary-help-btn"
             type="button"

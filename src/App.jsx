@@ -11,6 +11,7 @@ import Orders from './pages/Orders';
 import Advisor from './pages/Advisor';
 import Chatbot from './pages/Chatbot';
 import Insights from './pages/Insights';
+import Analytics from './pages/Analytics';
 import Profile from './pages/Profile';
 import CoinHistory from './pages/CoinHistory';
 import Glossary from './pages/Glossary';
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="advisor" element={<Advisor />} />
         <Route path="chat" element={<Chatbot />} />
         <Route path="insights" element={<Insights />} />
+        <Route path="analytics" element={<Analytics />} />
         <Route path="glossary" element={<Glossary />} />
         <Route path="profile" element={<Profile />} />
       </Route>

@@ -81,6 +81,14 @@ const initialUser = loadState('user', null);
 
 const useStore = create((set, get) => ({
   // ── USER STATE ──
+  theme: loadState('theme', 'light'),
+  toggleTheme: () => {
+    const newTheme = get().theme === 'light' ? 'dark' : 'light';
+    set({ theme: newTheme });
+    saveState('theme', newTheme);
+    if (newTheme === 'dark') document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  },
   user: initialUser,
   isAuthenticated: loadState('isAuthenticated', false),
   geminiApiKey: loadState('geminiApiKey', ''),

@@ -520,7 +520,7 @@ h6 {
   left: 0;
   right: 0;
   height: 64px;
-  background: #ffffff;
+  background: var(--bg-surface);
   border-bottom: 1px solid var(--border-default);
   display: flex;
   align-items: center;
@@ -533,7 +533,7 @@ h6 {
 .navbar-left {
   display: flex;
   align-items: center;
-  gap: 40px;
+  gap: 20px;
   flex: 0 0 auto;
 }
 
@@ -569,14 +569,14 @@ h6 {
 .navbar-menu {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 14px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .navbar-link {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary);
   text-decoration: none;
@@ -620,9 +620,9 @@ h6 {
 }
 
 .navbar-search:focus-within {
-  border-color: var(--accent-purple);
-  box-shadow: 0 0 0 3px var(--accent-purple-dim);
-  background: #ffffff;
+  border-color: var(--groww-teal);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  background: var(--bg-elevated);
 }
 
 .navbar-search input {
@@ -651,7 +651,7 @@ h6 {
   top: calc(100% + 8px);
   left: 0;
   right: 0;
-  background: #ffffff;
+  background: var(--bg-elevated);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
@@ -682,7 +682,7 @@ h6 {
 .navbar-right {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
   flex: 0 0 auto;
 }
 
@@ -769,7 +769,7 @@ h6 {
   position: fixed;
   z-index: 1200;
   width: min(340px, calc(100vw - 24px));
-  background: linear-gradient(160deg, #ffffff, #f8fafc);
+  background: var(--bg-elevated);
   border: 1px solid rgba(124, 58, 237, 0.2);
   border-radius: 16px;
   box-shadow: 0 20px 40px rgba(15, 23, 42, 0.16);
@@ -801,7 +801,7 @@ h6 {
   text-transform: uppercase;
   letter-spacing: 0.09em;
   font-weight: 700;
-  color: var(--accent-purple);
+  color: var(--groww-teal);
 }
 
 .glossary-tooltip-link {
@@ -834,7 +834,7 @@ h6 {
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  background: linear-gradient(135deg, #ecfeff, #f5f3ff 50%, #ecfdf5);
+  background: var(--bg-surface-2);
   border-color: rgba(124, 58, 237, 0.2);
 }
 
@@ -869,7 +869,7 @@ h6 {
 }
 
 .glossary-card {
-  background: linear-gradient(170deg, #ffffff, #f8fafc);
+  background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: 14px;
   padding: 16px;
@@ -914,7 +914,7 @@ h6 {
 }
 
 .glossary-card-relevance {
-  color: #166534;
+  color: var(--groww-teal);
 }
 
 .glossary-card-divider {
@@ -2121,6 +2121,7 @@ input[type="range"]:focus {
 }
 
 .dark {
+  /* Landing page groww variables */
   --groww-teal: #10b981; /* Emerald 500 */
   --groww-teal-dim: rgba(16, 185, 129, 0.15);
   --groww-teal-glow: rgba(16, 185, 129, 0.4);
@@ -2130,6 +2131,25 @@ input[type="range"]:focus {
   --groww-surface: #1e293b;
   --groww-border: rgba(255,255,255,0.05);
   --groww-nav-bg: rgba(15, 23, 42, 0.85);
+  
+  /* Global App Variables */
+  --bg-primary: #0f172a;
+  --bg-secondary: #0b1120;
+  --bg-surface: #1e293b;
+  --bg-surface-2: #334155;
+  --bg-surface-3: #475569;
+  --bg-surface-hover: #334155;
+  --bg-elevated: #1e293b;
+
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border-default: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.2);
+  --border-accent: rgba(29, 181, 132, 0.6);
+
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-inverse: #0f172a;
 }
 
 .landing-groww {
