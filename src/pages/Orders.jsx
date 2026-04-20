@@ -14,10 +14,11 @@ export default function Orders() {
 
   const filtered = useMemo(() => {
     if (filter === 'ALL') return orders;
-    if (filter === 'BUY') return orders.filter(o => o.type === 'BUY');
-    if (filter === 'SELL') return orders.filter(o => o.type === 'SELL');
-    if (filter === 'PROFIT') return orders.filter(o => o.pnl !== undefined && o.pnl >= 0);
-    if (filter === 'LOSS') return orders.filter(o => o.pnl !== undefined && o.pnl < 0);
+    if (filter === 'BUY') return orders.filter((o) => o.type === 'BUY');
+    if (filter === 'SELL') return orders.filter((o) => o.type === 'SELL');
+    if (filter === 'MATCHED') return orders.filter((o) => o.matchType);
+    if (filter === 'PROFIT') return orders.filter((o) => o.pnl !== undefined && o.pnl >= 0);
+    if (filter === 'LOSS') return orders.filter((o) => o.pnl !== undefined && o.pnl < 0);
     return orders;
   }, [orders, filter]);
 
@@ -30,7 +31,7 @@ export default function Orders() {
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        {['ALL', 'BUY', 'SELL', 'PROFIT', 'LOSS'].map(f => (
+        {['ALL', 'BUY', 'SELL', 'MATCHED', 'PROFIT', 'LOSS'].map((f) => (
           <button key={f} className={`btn btn-sm ${filter === f ? '' : 'btn-ghost'}`}
             onClick={() => setFilter(f)}
             style={filter === f ? {
@@ -82,9 +83,16 @@ export default function Orders() {
                     </div>
                   </td>
                   <td>
-                    <span className={`badge ${order.type === 'BUY' ? 'badge-green' : 'badge-red'}`}>
-                      {order.type}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span className={`badge ${order.type === 'BUY' ? 'badge-green' : 'badge-red'}`}>
+                        {order.type}
+                      </span>
+                      {order.matchType && (
+                        <span className="badge badge-purple" style={{ fontSize: '10px', padding: '4px 8px' }}>
+                          {order.matchType.replace(/_/g, ' ')}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{order.quantity}</td>
                   <td style={{ fontFamily: 'var(--font-mono)' }}>₹{order.price?.toLocaleString()}</td>

@@ -186,18 +186,46 @@ export default function Dashboard() {
 
   const portfolioChartData = useMemo(() => {
     const snapshots = portfolioHistory.slice(-60);
-    if (snapshots.length >= 2) {
-      return snapshots.map((p, i) => ({
-        time: i, netWorth: p.netWorth, invested: p.investedAmount ?? 0,
-      }));
+
+    // Helper: add micro-GBM noise between two points to simulate intraday movement
+    function interpolateWithNoise(start, end, steps, invested) {
+      const pts = [];
+      for (let s = 0; s < steps; s++) {
+        const progress = s / steps;
+        const base = start + (end - start) * progress;
+        const noise = base * 0.004 * (Math.random() - 0.48); // ±0.4% wiggle
+        pts.push({ netWorth: Math.max(0, parseFloat((base + noise).toFixed(2))), invested });
+      }
+      return pts;
     }
+
+    if (snapshots.length >= 2) {
+      // Real snapshots — interpolate between them for smooth live movement
+      const result = [];
+      for (let i = 0; i < snapshots.length - 1; i++) {
+        const a = snapshots[i];
+        const b = snapshots[i + 1];
+        const steps = Math.max(2, Math.floor(60 / snapshots.length));
+        interpolateWithNoise(a.netWorth, b.netWorth, steps, a.investedAmount ?? 0)
+          .forEach((p, j) => result.push({ time: result.length, ...p }));
+      }
+      const last = snapshots[snapshots.length - 1];
+      result.push({ time: result.length, netWorth: last.netWorth, invested: last.investedAmount ?? 0 });
+      return result;
+    }
+
     if (orders.length > 0) {
       const sortedOrders = [...orders].filter(o => o && o.timestamp)
         .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
       let runningNetWorth = baselineNetWorth;
       let runningInvested = 0;
-      const points = [{ time: 0, netWorth: runningNetWorth, invested: runningInvested }];
-      sortedOrders.forEach((order, index) => {
+      const points = [];
+      // Realistic start segment
+      interpolateWithNoise(runningNetWorth * 0.998, runningNetWorth, 6, 0)
+        .forEach((p, j) => points.push({ time: points.length, ...p }));
+
+      sortedOrders.forEach((order) => {
+        const prev = runningNetWorth;
         if (order.type === 'BUY') runningInvested += Number(order.totalCost || 0);
         if (order.type === 'SELL') {
           const tradePnl = Number(order.pnl || order.realizedPnl || 0);
@@ -205,11 +233,22 @@ export default function Dashboard() {
           runningInvested = Math.max(0, runningInvested - (saleTotal - tradePnl));
           runningNetWorth += tradePnl;
         }
-        points.push({ time: index + 1, netWorth: runningNetWorth, invested: runningInvested });
+        interpolateWithNoise(prev, runningNetWorth, 5, runningInvested)
+          .forEach((p) => points.push({ time: points.length, ...p }));
       });
       return points;
     }
-    return Array.from({ length: 20 }, (_, i) => ({ time: i, netWorth, invested: investedAmount }));
+
+    // No trades yet — simulate realistic portfolio movement from baseline
+    const pts = [];
+    let val = netWorth;
+    const drift = 0.00015; // slight upward trend
+    for (let i = 0; i < 60; i++) {
+      const noise = val * 0.006 * (Math.random() - 0.48);
+      val = Math.max(val * 0.92, val + val * drift + noise);
+      pts.push({ time: i, netWorth: parseFloat(val.toFixed(2)), invested: investedAmount });
+    }
+    return pts;
   }, [portfolioHistory, orders, netWorth, investedAmount, baselineNetWorth]);
 
   const trendChange = useMemo(() => {

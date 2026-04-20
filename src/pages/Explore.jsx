@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
@@ -13,6 +13,12 @@ export default function Explore() {
   const [search, setSearch] = useState('');
   const [sector, setSector] = useState('All');
   const [sortBy, setSortBy] = useState('name');
+
+  const refreshRealtimeStocks = useStore(s => s.refreshRealtimeStocks);
+
+  useEffect(() => {
+    refreshRealtimeStocks().catch(() => {});
+  }, [refreshRealtimeStocks]);
 
   const filtered = useMemo(() => {
     let list = [...stocks];
@@ -33,6 +39,9 @@ export default function Explore() {
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '4px' }}>Explore Stocks</h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Browse 20 simulated stocks and start trading</p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>
+          Prices refresh live across the app. Click a stock to open the trade screen and experience behavioral counterparty matching.
+        </p>
         {realtimeError && (
           <p style={{ color: 'var(--red)', fontSize: '12px', marginTop: '8px' }}>
             Live data error: {realtimeError}

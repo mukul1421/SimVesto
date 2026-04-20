@@ -1,10 +1,14 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import useStore from '../store/useStore';
-import { runMonteCarlo, getSuggestionColor, getSuggestionEmoji } from '../engine/monteCarlo';
+import { runMonteCarlo } from '../engine/monteCarlo';
 import { generateNarration } from '../engine/aiNarrator';
+import { findCounterpartyMatch } from '../engine/counterpartyEngine';
+import CounterpartyMatchModal from '../components/CounterpartyMatchModal';
+import MatchingImpactPanel from '../components/MatchingImpactPanel';
+import TradeAnalysisPanel from '../components/TradeAnalysisPanel';
 
 const TIMEFRAMES = ['1D', '1W', '1M', '3M', '1Y'];
 const QTY_STEP = 1;
@@ -69,20 +73,20 @@ const buildChartSlices = (stock, timeframe) => {
   return filteredHistory.map((point, index, slice) => {
     const previous = slice[index - 1]?.price ?? point.price;
     const timeDate = new Date(point.time);
-    
+
     let timeString = '';
     if (timeframe === '1D') {
       // Show HH:MM
       timeString = timeDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } else if (timeframe === '1W') {
       // Show MMM DD HH:MM
-      timeString = timeDate.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + 
-                   timeDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      timeString = timeDate.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' +
+        timeDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } else {
       // Show MMM DD for 1M, 3M, 1Y
       timeString = timeDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
     }
-    
+
     return {
       idx: index,
       time: timeString,
@@ -104,14 +108,14 @@ const aggregateCandles = (data, intervalsToAggregate) => {
   for (let i = 0; i < data.length; i += intervalsToAggregate) {
     const batch = data.slice(i, i + intervalsToAggregate);
     if (batch.length === 0) continue;
-    
+
     const open = batch[0].open;
     const close = batch[batch.length - 1].close;
     const high = Math.max(...batch.map(b => b.high));
     const low = Math.min(...batch.map(b => b.low));
     const volume = batch.reduce((sum, b) => sum + b.volume, 0);
     const time = batch[batch.length - 1].time;
-    
+
     aggregated.push({
       open,
       close,
@@ -299,8 +303,19 @@ export default function Trade() {
   const geminiApiKey = useStore(s => s.geminiApiKey);
   const addSimulation = useStore(s => s.addSimulation);
   const updateFearScore = useStore(s => s.updateFearScore);
+  const matchedTrades = useStore(s => s.matchedTrades);
+  const addMatchedTrade = useStore(s => s.addMatchedTrade);
+  const refreshRealtimeStocks = useStore(s => s.refreshRealtimeStocks);
+  const companyNotes = useStore(s => s.companyNotes);
+  const saveCompanyNote = useStore(s => s.saveCompanyNote);
 
-  const [entryTime, setEntryTime] = useState(Date.now());
+  // Counterparty matching state
+  const [showMatchModal, setShowMatchModal] = useState(false);
+  const [pendingMatch, setPendingMatch] = useState(null);   // match result from engine
+  const pendingTradeRef = useRef(null);                      // { side, priceOverride }
+
+  // entryTime tracks when user CLICKED the buy/sell button — reset there, not on mount
+  const [entryTime, setEntryTime] = useState(null);
 
   const stock = useMemo(() => {
     const routeSymbol = String(symbol || '').toUpperCase();
@@ -330,13 +345,12 @@ export default function Trade() {
   const canBuy = quantity <= maxBuyQuantity && totalCost <= (user?.iqCoins || 0);
   const canSell = Boolean(holding && quantity <= holding.quantity);
 
-  // Run Monte Carlo on demand
+  // ── Run Monte Carlo (no fear score here — that's deferred to mood submission) ──
   const runMC = useCallback(() => {
     if (!stock) return;
     setMcLoading(true);
     setAiText('');
     setTimeout(() => {
-      const horizonMap = { '1M': 21, '3M': 63, '6M': 126, '1Y': 252 };
       const result = runMonteCarlo({
         currentPrice: stock.currentPrice,
         drift: stock.drift,
@@ -352,10 +366,8 @@ export default function Trade() {
         ...result, timestamp: Date.now(),
       });
 
-      // Fear Score: Practice reduces fear
-      updateFearScore('SIMULATION_COMPLETED', 0, true);
+      // NO fear score update here — it fires after the user submits mood below
 
-      // Generate AI narration
       setAiLoading(true);
       generateNarration({
         apiKey: geminiApiKey,
@@ -373,31 +385,131 @@ export default function Trade() {
     }, 500);
   }, [stock, totalCost, fearScore, geminiApiKey, user]);
 
-  const executeTrade = async () => {
+  // ── Mood submit: NOW we update fear score (primary) + save note ──
+  const handleMoodSubmit = useCallback((payload) => {
+    // MOOD_REPORT triggers the fear score modal (unlike QUIZ_RESULT which suppresses it)
+    updateFearScore('MOOD_REPORT', 0, payload.fearDelta <= 0, payload.fearDelta);
+    if (stock) saveCompanyNote(stock.symbol, payload);
+  }, [stock, updateFearScore, saveCompanyNote]);
+
+  // ── Inner function that actually runs the trade (after match decision) ──
+  const runTrade = useCallback(async (priceOverride = null) => {
     if (!stock) return;
+
     let result;
     if (tab === 'BUY') {
+      // buyStock/sellStock only take (stockId, quantity) — price is determined by the store
       result = await buyStock(stock.id, quantity);
     } else {
       result = await sellStock(stock.id, quantity);
     }
 
-    // Fear Metric Logging only for successful orders
     if (result?.success) {
-      const hesitationMs = Date.now() - entryTime;
-      const isPositive = result?.pnl !== undefined ? result.pnl >= 0 : true;
-      updateFearScore('TRADE_DECISION', hesitationMs, isPositive);
-      setEntryTime(Date.now()); // Reset hesitation timer for next trade
+      if (priceOverride && pendingMatch) {
+        // Matched trade — reward with fear reduction, no hesitation penalty
+        updateFearScore('MATCHED_TRADE_ACCEPTED', 0, true);
+      } else {
+        // Normal trade — measure hesitation only from when they clicked Buy/Sell
+        const hesMs = entryTime != null ? Date.now() - entryTime : 2000;
+        const isPositive = result?.pnl !== undefined ? result.pnl >= 0 : true;
+        updateFearScore('TRADE_DECISION', hesMs, isPositive);
+      }
+      setEntryTime(null); // reset for next trade
+
+      // If this came from a matched trade, record the savings
+      if (priceOverride && pendingMatch) {
+        const savingsPerShare = parseFloat(Math.abs(
+          tab === 'BUY'
+            ? stock.buyPrice - priceOverride
+            : priceOverride - stock.sellPrice
+        ).toFixed(2));
+        addMatchedTrade({
+          id: Date.now(),
+          symbol: stock.symbol,
+          side: tab,
+          quantity,
+          matchedPrice: priceOverride,
+          marketPrice: tab === 'BUY' ? stock.buyPrice : stock.sellPrice,
+          savingsPerShare,
+          totalSavings: parseFloat((savingsPerShare * quantity).toFixed(2)),
+          priceImprovementPct: pendingMatch.priceImprovementPct,
+          matchType: pendingMatch.matchType,
+          counterparty: pendingMatch.counterparty,
+          timestamp: Date.now(),
+        });
+      }
     }
 
-    setOrderResult(result);
+    // Attach match savings info to result so the success modal can display it
+    const enrichedResult = priceOverride && pendingMatch && result?.success
+      ? {
+        ...result,
+        matchSavings: parseFloat((Math.abs(
+          tab === 'BUY'
+            ? stock.buyPrice - priceOverride
+            : priceOverride - stock.sellPrice
+        ) * quantity).toFixed(2)),
+        matchedPrice: priceOverride,
+        counterparty: pendingMatch.counterparty,
+      }
+      : result;
+
+    setPendingMatch(null);
+    pendingTradeRef.current = null;
+    setOrderResult(enrichedResult);
     setShowOrderModal(true);
     setQuantity(1);
-  };
+  }, [stock, tab, quantity, buyStock, sellStock, entryTime, updateFearScore, addMatchedTrade, pendingMatch]);
+
+  // ── executeTrade: stamp entry time, then attempt counterparty match ──
+  const executeTrade = useCallback(async () => {
+    if (!stock) return;
+
+    // Stamp NOW as the decision moment — so page-reading time is NOT counted as hesitation
+    setEntryTime(Date.now());
+
+    const match = findCounterpartyMatch({
+      symbol: stock.symbol,
+      side: tab,
+      userFearScore: fearScore?.score ?? 50,
+      stockVolatility: stock.volatility,
+      currentPrice: stock.currentPrice,
+      buyPrice: stock.buyPrice,
+      sellPrice: stock.sellPrice,
+    });
+
+    if (match) {
+      // Show the matching modal; actual trade runs after user decision
+      setPendingMatch(match);
+      pendingTradeRef.current = { side: tab };
+      setShowMatchModal(true);
+    } else {
+      // No match — execute at market price immediately
+      await runTrade(null);
+    }
+  }, [stock, tab, fearScore, runTrade]);
+
+  // Called when user accepts the counterparty match
+  const handleMatchAccept = useCallback(async (matchedPrice) => {
+    setShowMatchModal(false);
+    await runTrade(matchedPrice);
+  }, [runTrade]);
+
+  // Called when user skips the match
+  const handleMatchSkip = useCallback(async () => {
+    setShowMatchModal(false);
+    setPendingMatch(null);
+    pendingTradeRef.current = null;
+    await runTrade(null);
+  }, [runTrade]);
 
   useEffect(() => {
     setQuantity(1);
   }, [symbol]);
+
+  useEffect(() => {
+    refreshRealtimeStocks().catch(() => { });
+  }, [refreshRealtimeStocks]);
 
   if (!stock) {
     return (
@@ -535,77 +647,33 @@ export default function Trade() {
             </div>
           </motion.div>
 
-          {/* Monte Carlo Advisor Section */}
-          <motion.div className="card" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                🤖 Monte Carlo AI Advisor
-              </h3>
-              <button className="btn btn-primary btn-sm" onClick={runMC} disabled={mcLoading}>
-                {mcLoading ? <span className="spinner" style={{ width: '14px', height: '14px' }} /> : '▶ Analyze Trade'}
-              </button>
-            </div>
-
-            {mcResult && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                {/* Suggestion Badge */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                  <span style={{
-                    fontSize: '28px', padding: '8px 20px', borderRadius: 'var(--radius-lg)',
-                    background: `${getSuggestionColor(mcResult.suggestion)}15`,
-                    border: `1px solid ${getSuggestionColor(mcResult.suggestion)}30`,
-                    fontFamily: 'var(--font-mono)', fontWeight: 700, color: getSuggestionColor(mcResult.suggestion),
-                  }}>
-                    {getSuggestionEmoji(mcResult.suggestion)} {mcResult.suggestion}
-                  </span>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 500 }}>Based on 1,000 simulated scenarios</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Loss probability: {mcResult.lossProbability}%</div>
-                  </div>
-                </div>
-
-                {/* Outcome Cards */}
-                <div className="grid-3" style={{ gap: '10px', marginBottom: '16px' }}>
-                  {[
-                    { label: 'Best Case', value: mcResult.bestCase, color: 'var(--green)', icon: '🚀' },
-                    { label: 'Expected', value: mcResult.expectedCase, color: 'var(--accent-purple-light)', icon: '📊' },
-                    { label: 'Worst Case', value: mcResult.worstCase, color: 'var(--red)', icon: '⚠️' },
-                  ].map((c, i) => (
-                    <div key={i} style={{
-                      background: 'var(--bg-surface-2)', borderRadius: 'var(--radius-md)', padding: '14px', textAlign: 'center',
-                      border: '1px solid var(--border-subtle)',
-                    }}>
-                      <div style={{ fontSize: '16px', marginBottom: '4px' }}>{c.icon}</div>
-                      <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>{c.label}</div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '16px', fontWeight: 700, color: c.color }}>
-                        ₹{c.value.toLocaleString()}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* AI Narration */}
-                {(aiText || aiLoading) && (
-                  <div style={{
-                    background: 'var(--bg-surface-2)', borderRadius: 'var(--radius-md)',
-                    padding: '16px', borderLeft: '3px solid var(--accent-purple)',
-                  }}>
-                    <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent-purple-light)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                      AI Analysis
-                    </div>
-                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-                      {aiText}{aiLoading && <span style={{ animation: 'pulse 1s infinite' }}>▊</span>}
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </motion.div>
+          {/* AI Trade Analysis Panel (replaces old MC section) */}
+          <TradeAnalysisPanel
+            stock={stock}
+            mcResult={mcResult}
+            mcLoading={mcLoading}
+            aiText={aiText}
+            aiLoading={aiLoading}
+            onRunAnalysis={runMC}
+            onMoodSubmit={handleMoodSubmit}
+            previousNotes={companyNotes[stock.symbol] || []}
+          />
         </div>
 
         {/* Right — Trade Panel */}
         <div style={{ width: '100%' }}>
+          {/* Counterparty Match Modal */}
+          <CounterpartyMatchModal
+            isOpen={showMatchModal}
+            match={pendingMatch}
+            stock={stock}
+            quantity={quantity}
+            userFearScore={fearScore?.score ?? 50}
+            onAccept={handleMatchAccept}
+            onSkip={handleMatchSkip}
+            onClose={() => { setShowMatchModal(false); setPendingMatch(null); }}
+          />
+
           <div className="card" style={{ padding: '20px' }}>
 
             {/* Buy/Sell Tabs */}
@@ -687,6 +755,28 @@ export default function Trade() {
                 <span style={{ fontWeight: 600 }}>Total</span>
                 <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '18px' }}>₹{totalCost.toLocaleString()}</span>
               </div>
+
+              {/* Bid-Ask Spread row — shows WHY counterparty matching saves money */}
+              {stock.buyPrice && stock.sellPrice && (
+                <div style={{
+                  marginTop: '10px', paddingTop: '10px',
+                  borderTop: '1px solid var(--border-subtle)',
+                  display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px',
+                }}>
+                  <div style={{ textAlign: 'center', padding: '6px 4px', borderRadius: 8, background: 'rgba(239,68,68,0.07)' }}>
+                    <div style={{ fontSize: '9px', color: '#ef4444', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Bid (Sell)</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 700, color: '#ef4444' }}>₹{stock.sellPrice.toLocaleString()}</div>
+                  </div>
+                  <div style={{ textAlign: 'center', padding: '6px 4px', borderRadius: 8, background: 'rgba(16,185,129,0.07)' }}>
+                    <div style={{ fontSize: '9px', color: '#10b981', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ask (Buy)</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 700, color: '#10b981' }}>₹{stock.buyPrice.toLocaleString()}</div>
+                  </div>
+                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', fontSize: '10px', color: 'var(--text-muted)', marginTop: 2 }}>
+                    Spread: ₹{stock.spread?.toFixed(2)} ({stock.spreadPct?.toFixed(3)}%) · Match saves you this
+                  </div>
+                </div>
+              )}
+
               {tab === 'BUY' && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
                   <span>Available</span>
@@ -738,6 +828,90 @@ export default function Trade() {
               </div>
             )}
           </div>
+
+          {/* Animated Fear Score widget — fills gap, always visible */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+            style={{
+              marginTop: 14, padding: '14px 16px', borderRadius: 14,
+              background: 'linear-gradient(135deg, rgba(124,58,237,0.08), rgba(6,182,212,0.05))',
+              border: '1px solid var(--border-subtle)', position: 'relative', overflow: 'hidden',
+            }}
+          >
+            {/* Animated background blob */}
+            <motion.div
+              animate={{ scale: [1, 1.15, 1], opacity: [0.12, 0.22, 0.12] }}
+              transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+              style={{
+                position: 'absolute', right: -20, top: -20, width: 80, height: 80,
+                borderRadius: '50%',
+                background: fearScore?.score >= 65 ? '#ef4444' : fearScore?.score >= 35 ? '#f59e0b' : '#10b981',
+                filter: 'blur(28px)', pointerEvents: 'none',
+              }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
+              <div>
+                <div style={{
+                  fontSize: 9, fontWeight: 800, color: 'var(--text-muted)',
+                  textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4
+                }}>Fear Score</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                  <span style={{
+                    fontFamily: 'var(--font-mono)', fontSize: 32, fontWeight: 900, lineHeight: 1,
+                    color: fearScore?.score >= 65 ? '#ef4444' : fearScore?.score >= 35 ? '#f59e0b' : '#10b981',
+                  }}>{fearScore?.score ?? 50}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, opacity: 0.6 }}>/100</span>
+                </div>
+                <div style={{
+                  fontSize: 10, fontWeight: 700, marginTop: 3,
+                  color: fearScore?.score >= 65 ? '#ef4444' : fearScore?.score >= 35 ? '#f59e0b' : '#10b981'
+                }}>
+                  {fearScore?.fearClass === 'HIGH' ? 'HIGH FEAR · Stay calm' :
+                    fearScore?.fearClass === 'LOW' ? 'LOW FEAR · Well composed' : 'MEDIUM FEAR · Keep learning'}
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                {/* Pulsing live dot */}
+                <div style={{ position: 'relative', width: 36, height: 36 }}>
+                  <motion.div
+                    animate={{ scale: [1, 1.6, 1], opacity: [0.5, 0, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    style={{
+                      position: 'absolute', inset: 0, borderRadius: '50%',
+                      background: fearScore?.score >= 65 ? '#ef4444' : fearScore?.score >= 35 ? '#f59e0b' : '#10b981',
+                    }}
+                  />
+                  <div style={{
+                    position: 'absolute', inset: 6, borderRadius: '50%',
+                    background: fearScore?.score >= 65 ? '#ef4444' : fearScore?.score >= 35 ? '#f59e0b' : '#10b981',
+                  }} />
+                </div>
+                <div style={{
+                  fontSize: 9, color: 'var(--text-muted)', fontWeight: 700,
+                  textTransform: 'uppercase', letterSpacing: '0.08em'
+                }}>LIVE</div>
+              </div>
+            </div>
+
+            {/* Score bar */}
+            <div style={{
+              marginTop: 10, height: 4, borderRadius: 99, background: 'var(--bg-surface)',
+              overflow: 'hidden'
+            }}>
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${fearScore?.score ?? 50}%` }}
+                transition={{ duration: 1.2, ease: 'easeOut' }}
+                style={{
+                  height: '100%', borderRadius: 99,
+                  background: `linear-gradient(90deg, #10b981, #f59e0b, #ef4444)`,
+                }}
+              />
+            </div>
+          </motion.div>
+
+          {/* Matching Impact Panel — shown after first match */}
+          <MatchingImpactPanel matchedTrades={matchedTrades.filter(t => t.symbol === stock.symbol)} />
         </div>
       </div>
 
@@ -750,11 +924,40 @@ export default function Trade() {
               exit={{ scale: 0.9, opacity: 0 }} onClick={e => e.stopPropagation()}>
               {orderResult?.success ? (
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
-                  <h3 style={{ marginBottom: '8px' }}>Order Executed!</h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px' }}>
+                  <div style={{ fontSize: '48px', marginBottom: '12px' }}>
+                    {orderResult.matchSavings ? '🤝' : '✅'}
+                  </div>
+                  <h3 style={{ marginBottom: '6px' }}>
+                    {orderResult.matchSavings ? 'Matched Trade Executed!' : 'Order Executed!'}
+                  </h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '14px' }}>
                     {orderResult.order?.type === 'BUY' ? 'Bought' : 'Sold'} {orderResult.order?.quantity} shares of {stock.name} at ₹{orderResult.order?.price?.toLocaleString()}
                   </p>
+
+                  {/* Match savings banner */}
+                  {orderResult.matchSavings > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      style={{
+                        padding: '14px 16px', borderRadius: 12, marginBottom: 14,
+                        background: 'rgba(16,185,129,0.12)',
+                        border: '1px solid rgba(16,185,129,0.35)',
+                      }}
+                    >
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>
+                        🎯 Counterparty Match Savings
+                      </div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 24, fontWeight: 800, color: '#10b981', marginBottom: 4 }}>
+                        +₹{orderResult.matchSavings.toLocaleString()}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                        Matched with <strong>{orderResult.counterparty?.name}</strong> ({orderResult.counterparty?.archetype})<br />
+                        You avoided the market maker spread!
+                      </div>
+                    </motion.div>
+                  )}
+
                   {orderResult.pnl !== undefined && (
                     <div style={{
                       fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 700,
