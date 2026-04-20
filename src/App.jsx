@@ -9,6 +9,7 @@ import Trade from './pages/Trade';
 import Holdings from './pages/Holdings';
 import Orders from './pages/Orders';
 import Advisor from './pages/Advisor';
+import Arena from './pages/Arena';
 import Chatbot from './pages/Chatbot';
 import Insights from './pages/Insights';
 import Analytics from './pages/Analytics';
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="coins" element={<CoinHistory />} />
         <Route path="orders" element={<Orders />} />
         <Route path="advisor" element={<Advisor />} />
+        <Route path="arena" element={<Arena />} />
         <Route path="chat" element={<Chatbot />} />
         <Route path="insights" element={<Insights />} />
         <Route path="analytics" element={<Analytics />} />

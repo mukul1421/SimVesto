@@ -100,7 +100,7 @@ function highlightGlossaryTerms(root, matcher) {
   });
 }
 
-export default function GlossaryHighlighter({ enabled }) {
+export default function GlossaryHighlighter({ enabled, onOpenBot }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTerm, setActiveTerm] = useState(null);
@@ -209,16 +209,33 @@ export default function GlossaryHighlighter({ enabled }) {
         <span className="glossary-tooltip-label">Why it matters</span>
         <p>{activeTerm.relevance}</p>
       </div>
-      <button
-        type="button"
-        className="glossary-tooltip-link"
-        onClick={() => {
-          setActiveTerm(null);
-          navigate('/app/glossary');
-        }}
-      >
-        Learn more terms
-      </button>
+      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+        <button
+          type="button"
+          className="glossary-tooltip-link"
+          style={{ flex: 1 }}
+          onClick={() => {
+            setActiveTerm(null);
+            navigate('/app/glossary');
+          }}
+        >
+          More terms
+        </button>
+        {onOpenBot && (
+          <button
+            type="button"
+            className="glossary-bot-tooltip-btn"
+            title={`Ask AI about "${activeTerm.term}"`}
+            data-fx="twirl"
+            onClick={() => {
+              setActiveTerm(null);
+              onOpenBot(activeTerm.term);
+            }}
+          >
+            🤖 Ask AI
+          </button>
+        )}
+      </div>
     </div>
   );
 }

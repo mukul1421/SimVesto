@@ -1,6 +1,7 @@
 import { useMemo, useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { GLOSSARY_TERMS } from '../data/glossaryTerms';
+import GlossaryAIBot from '../components/GlossaryAIBot';
 
 function TiltCard({ children, className }) {
   const cardRef = useRef(null);
@@ -38,6 +39,7 @@ function TiltCard({ children, className }) {
 
 export default function Glossary() {
   const [query, setQuery] = useState('');
+  const [robotTerm, setRobotTerm] = useState(null);
 
   const filteredTerms = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -89,25 +91,35 @@ export default function Glossary() {
             transition={{ delay: idx * 0.03 }}
           >
             <TiltCard className="glossary-card-3d">
-              <div className="glossary-card-3d-inner">
-                <div className="glossary-card-3d-header">
-                  <h3>{term.term}</h3>
-                  {term.aliases?.length > 0 && (
-                    <span className="glossary-card-3d-alias">{term.aliases.slice(0, 2).join(' / ')}</span>
+                <div className="glossary-card-3d-inner">
+                  <div className="glossary-card-3d-header">
+                    <h3>{term.term}</h3>
+                    {term.aliases?.length > 0 && (
+                      <span className="glossary-card-3d-alias">{term.aliases.slice(0, 2).join(' / ')}</span>
+                    )}
+                  </div>
+                  <p className="glossary-card-3d-meaning">{term.meaning}</p>
+                  <div className="glossary-card-3d-divider" />
+                  <p className="glossary-card-3d-relevance">{term.relevance}</p>
+                  {term.quip && (
+                    <>
+                      <div className="glossary-card-3d-divider" />
+                      <p className="glossary-card-3d-quip">"{term.quip}"</p>
+                    </>
                   )}
+                  {/* AI Bot Button */}
+                  <button
+                    className="glossary-bot-btn"
+                    onClick={(e) => { e.stopPropagation(); setRobotTerm(term.term); }}
+                    title={`Ask AI about "${term.term}"`}
+                    aria-label={`AI explain ${term.term}`}
+                    data-fx="twirl"
+                  >
+                    🤖
+                  </button>
                 </div>
-                <p className="glossary-card-3d-meaning">{term.meaning}</p>
-                <div className="glossary-card-3d-divider" />
-                <p className="glossary-card-3d-relevance">{term.relevance}</p>
-                {term.quip && (
-                  <>
-                    <div className="glossary-card-3d-divider" />
-                    <p className="glossary-card-3d-quip">"{term.quip}"</p>
-                  </>
-                )}
-              </div>
-              <div className="glossary-card-3d-shine" />
-            </TiltCard>
+                <div className="glossary-card-3d-shine" />
+              </TiltCard>
           </motion.div>
         ))}
       </div>
@@ -117,6 +129,9 @@ export default function Glossary() {
           No matches found. Try a broader term.
         </div>
       )}
+
+      {/* Glossary AI Bot */}
+      {robotTerm && <GlossaryAIBot term={robotTerm} onClose={() => setRobotTerm(null)} />}
     </div>
   );
 }

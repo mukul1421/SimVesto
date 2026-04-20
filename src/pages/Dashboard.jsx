@@ -6,6 +6,7 @@ import useStore from '../store/useStore';
 import { getFearColor, getFearLabel } from '../engine/fearEngine';
 import FearBadge from '../components/fear/FearBadge';
 import { api } from '../services/api';
+import DashboardBg from '../components/DashboardBg';
 
 const INITIAL_CAPITAL = 100000;
 
@@ -95,6 +96,70 @@ const ActivityIcon = () => (
 
 function formatTime(ts) {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+// ── Market Indices (simulated GBM live ticks) ──────────────────────
+const INDEX_BASE = [
+  { key: 'nifty',    label: 'NIFTY 50',   base: 22387,  vol: 0.0008 },
+  { key: 'sensex',  label: 'SENSEX',      base: 73815,  vol: 0.0007 },
+  { key: 'banknf',  label: 'BANK NIFTY',  base: 47230,  vol: 0.0011 },
+  { key: 'bse500',  label: 'BSE 500',     base: 31120,  vol: 0.0009 },
+];
+
+function gbmTick(price, vol) {
+  const z = Math.random() * 2 - 1;
+  const drift = 0.00002;
+  return Math.max(price * Math.exp((drift - 0.5 * vol * vol) + vol * z), price * 0.8);
+}
+
+function MarketIndices() {
+  const [indices, setIndices] = useState(() =>
+    INDEX_BASE.map(ix => ({
+      ...ix,
+      price: ix.base,
+      open: ix.base,
+      history: [ix.base],
+    }))
+  );
+
+  useEffect(() => {
+    const iv = setInterval(() => {
+      setIndices(prev => prev.map(ix => {
+        const newP = parseFloat(gbmTick(ix.price, ix.vol).toFixed(2));
+        return { ...ix, price: newP, history: [...ix.history.slice(-40), newP] };
+      }));
+    }, 2800);
+    return () => clearInterval(iv);
+  }, []);
+
+  return (
+    <div className="indices-row">
+      {indices.map(ix => {
+        const chg = ((ix.price - ix.open) / ix.open) * 100;
+        const up = chg >= 0;
+        const min = Math.min(...ix.history);
+        const max = Math.max(...ix.history);
+        const range = max - min || 1;
+        const pts = ix.history.map((v, i) => {
+          const x = (i / Math.max(1, ix.history.length - 1)) * 120;
+          const y = 32 - ((v - min) / range) * 30;
+          return `${x},${y}`;
+        }).join(' ');
+        return (
+          <div key={ix.key} className="index-card">
+            <div className="index-label">{ix.label}</div>
+            <div className="index-price">{ix.price.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
+            <div className={`index-chg ${up ? 'pos' : 'neg'}`}>
+              {up ? '▲' : '▼'} {Math.abs(chg).toFixed(2)}%
+            </div>
+            <svg viewBox="0 0 120 34" className="index-spark" preserveAspectRatio="none">
+              <polyline points={pts} fill="none" stroke={up ? '#10b981' : '#ef4444'} strokeWidth="1.8" strokeLinejoin="round" />
+            </svg>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export default function Dashboard() {
@@ -271,7 +336,8 @@ export default function Dashboard() {
   ];
 
   return (
-    <div>
+    <div style={{ position: 'relative' }}>
+      <DashboardBg />
       {/* Welcome */}
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
         style={{ marginBottom: '28px' }}>
@@ -406,6 +472,11 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
+      {/* Market Indices */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+        <MarketIndices />
+      </motion.div>
+
       {/* Market Movers */}
       <div className="grid-2" style={{ gap: '20px', marginBottom: '24px' }}>
         <motion.div className="card" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
@@ -448,7 +519,7 @@ export default function Dashboard() {
           <h3 style={{ fontSize: '15px', fontWeight: 800, marginBottom: '12px', fontFamily: 'var(--font-serif)' }}>Achievements</h3>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             {milestones.map(m => (
-              <div key={m.id} className="badge badge-purple" style={{ fontSize: '12px', padding: '6px 14px' }}>{m.label} — +{m.reward} Coins</div>
+          <div key={m.id} className="badge badge-purple" style={{ fontSize: '12px', padding: '6px 14px' }} data-fx="confetti">{m.label} — +{m.reward} Coins</div>
             ))}
           </div>
         </motion.div>

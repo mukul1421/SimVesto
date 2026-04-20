@@ -6,10 +6,13 @@ import Logo from './Logo';
 import GlossaryHighlighter from './GlossaryHighlighter';
 import Sidebar from './Sidebar';
 import ParallaxBg from './ParallaxBg';
+import Arena from '../pages/Arena';
+import CursorAura from './CursorAura';
+import ClickFX from './ClickFX';
+import GlossaryAIBot from './GlossaryAIBot';
 
 const NAV_ITEMS = [
   { path: '/app/explore', label: 'Explore' },
-  { path: '/app/advisor', label: 'AI Advisor' },
   { path: '/app/analytics', label: 'Market Pulse' },
 ];
 
@@ -26,6 +29,8 @@ export default function AppLayout() {
   const [showSearch, setShowSearch] = useState(false);
   const [searchReadOnly, setSearchReadOnly] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [arenaOpen, setArenaOpen] = useState(false);
+  const [glossaryBotTerm, setGlossaryBotTerm] = useState(null);
   const formatSymbol = (value) => String(value || '').replace(/^IQ/, '');
   
   const fearModalData = useStore(s => s.fearModalData);
@@ -105,6 +110,13 @@ export default function AppLayout() {
                 {item.label}
               </NavLink>
             ))}
+            <button
+              className="navbar-link arena-nav-btn"
+              onClick={() => setArenaOpen(true)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 800 }}
+            >
+              ⚔ Arena
+            </button>
           </nav>
         </div>
 
@@ -201,13 +213,25 @@ export default function AppLayout() {
         </div>
       </main>
 
-      <GlossaryHighlighter enabled={glossaryEnabled} />
+      <GlossaryHighlighter enabled={glossaryEnabled} onOpenBot={setGlossaryBotTerm} />
 
       <FearFeedbackModal 
         isOpen={!!fearModalData} 
         onClose={clearFearModal} 
         logData={fearModalData} 
       />
+
+      {/* Trading Arena Modal */}
+      <Arena isOpen={arenaOpen} onClose={() => setArenaOpen(false)} />
+
+      {/* Global FX */}
+      <CursorAura />
+      <ClickFX />
+
+      {/* Glossary AI Bot */}
+      {glossaryBotTerm && (
+        <GlossaryAIBot term={glossaryBotTerm} onClose={() => setGlossaryBotTerm(null)} />
+      )}
 
       <style>{`
         @keyframes tickerScroll {
