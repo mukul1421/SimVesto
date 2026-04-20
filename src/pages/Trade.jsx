@@ -40,30 +40,30 @@ const buildChartSlices = (stock, timeframe) => {
       // Last 7 days, show 4-hourly candles (combine 4 hourly points into one)
       const oneWeekAgo = now - 7 * 86400000;
       filteredHistory = history.filter(h => h.time >= oneWeekAgo);
-      // Aggregate into 4-hour candles
-      filteredHistory = aggregateCandles(filteredHistory, 4);
+      // Aggregate by 4-hour time buckets.
+      filteredHistory = aggregateCandlesByTime(filteredHistory, 4 * 3600000);
       break;
     }
     case '1M': {
       // Last 30 days, show daily candles
       const oneMonthAgo = now - 30 * 86400000;
       filteredHistory = history.filter(h => h.time >= oneMonthAgo);
-      // Aggregate into daily candles
-      filteredHistory = aggregateCandles(filteredHistory, 24);
+      // Aggregate by daily time buckets.
+      filteredHistory = aggregateCandlesByTime(filteredHistory, 86400000);
       break;
     }
     case '3M': {
       // Last 90 days, show daily candles
       const threeMonthsAgo = now - 90 * 86400000;
       filteredHistory = history.filter(h => h.time >= threeMonthsAgo);
-      filteredHistory = aggregateCandles(filteredHistory, 24);
+      filteredHistory = aggregateCandlesByTime(filteredHistory, 86400000);
       break;
     }
     case '1Y': {
       // Last 365 days, show daily candles
       const oneYearAgo = now - 365 * 86400000;
       filteredHistory = history.filter(h => h.time >= oneYearAgo);
-      filteredHistory = aggregateCandles(filteredHistory, 24);
+      filteredHistory = aggregateCandlesByTime(filteredHistory, 86400000);
       break;
     }
     default:
@@ -102,30 +102,43 @@ const buildChartSlices = (stock, timeframe) => {
   });
 };
 
-// Helper function to aggregate candles
-const aggregateCandles = (data, intervalsToAggregate) => {
-  const aggregated = [];
-  for (let i = 0; i < data.length; i += intervalsToAggregate) {
-    const batch = data.slice(i, i + intervalsToAggregate);
-    if (batch.length === 0) continue;
-
-    const open = batch[0].open;
-    const close = batch[batch.length - 1].close;
-    const high = Math.max(...batch.map(b => b.high));
-    const low = Math.min(...batch.map(b => b.low));
-    const volume = batch.reduce((sum, b) => sum + b.volume, 0);
-    const time = batch[batch.length - 1].time;
-
-    aggregated.push({
-      open,
-      close,
-      high,
-      low,
-      price: close,
-      volume,
-      time,
-    });
+// Helper function to aggregate candles by time bucket in milliseconds.
+const aggregateCandlesByTime = (data, bucketMs) => {
+  if (!Array.isArray(data) || data.length === 0 || !Number.isFinite(bucketMs) || bucketMs <= 0) {
+    return [];
   }
+
+  const sorted = [...data].sort((a, b) => a.time - b.time);
+  const aggregated = [];
+  let currentBucket = null;
+  let candle = null;
+
+  for (const point of sorted) {
+    const bucket = Math.floor(point.time / bucketMs) * bucketMs;
+    if (bucket !== currentBucket || !candle) {
+      if (candle) aggregated.push(candle);
+      currentBucket = bucket;
+      candle = {
+        open: point.open,
+        close: point.close,
+        high: point.high,
+        low: point.low,
+        price: point.close,
+        volume: point.volume || 0,
+        time: point.time,
+      };
+      continue;
+    }
+
+    candle.close = point.close;
+    candle.price = point.close;
+    candle.high = Math.max(candle.high, point.high);
+    candle.low = Math.min(candle.low, point.low);
+    candle.volume += point.volume || 0;
+    candle.time = point.time;
+  }
+
+  if (candle) aggregated.push(candle);
   return aggregated;
 };
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
@@ -14,11 +14,33 @@ export default function Explore() {
   const [sector, setSector] = useState('All');
   const [sortBy, setSortBy] = useState('name');
 
-  const refreshRealtimeStocks = useStore(s => s.refreshRealtimeStocks);
+  const getLastUpdateLabel = (lastLiveUpdate, isDelayed) => {
+    if (!isDelayed || !lastLiveUpdate) return 'Live';
 
-  useEffect(() => {
-    refreshRealtimeStocks().catch(() => {});
-  }, [refreshRealtimeStocks]);
+    const diffMs = Date.now() - Number(lastLiveUpdate);
+    if (!Number.isFinite(diffMs) || diffMs < 1000) return 'Delayed';
+    const secs = Math.max(1, Math.floor(diffMs / 1000));
+
+    if (secs < 60) return `Delayed ${secs}s ago`;
+    const mins = Math.floor(secs / 60);
+    if (mins < 60) return `Delayed ${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    return `Delayed ${hrs}h ago`;
+  };
+
+  const getDisplayPct = (stock) => {
+    const directPct = Number(stock?.dayChangePct);
+    if (Number.isFinite(directPct)) return directPct;
+
+    const price = Number(stock?.currentPrice);
+    const change = Number(stock?.dayChange);
+    const open = price - change;
+    if (Number.isFinite(open) && Math.abs(open) > 0.000001) {
+      return (change / open) * 100;
+    }
+
+    return 0;
+  };
 
   const filtered = useMemo(() => {
     let list = [...stocks];
@@ -91,7 +113,10 @@ export default function Explore() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
         {filtered.map((stock, i) => {
           const sparkData = stock.priceHistory.slice(-48).map((h, j) => ({ i: j, p: h.price }));
-          const isUp = stock.dayChangePct >= 0;
+          const pct = getDisplayPct(stock);
+          const isUp = pct >= 0;
+          const isDelayed = Boolean(stock.isDelayed);
+          const quoteLabel = getLastUpdateLabel(stock.lastLiveUpdate, isDelayed);
           return (
             <motion.div key={stock.id} className="card" style={{ cursor: 'pointer', padding: '16px' }}
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -117,8 +142,15 @@ export default function Explore() {
                   </div>
                 </div>
                 <span className={`badge ${isUp ? 'badge-green' : 'badge-red'}`}>
-                  {isUp ? '▲' : '▼'} {Math.abs(stock.dayChangePct).toFixed(2)}%
+                  {isUp ? '▲' : '▼'} {Math.abs(pct).toFixed(2)}%
                 </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span className={`badge ${isDelayed ? 'badge-red' : 'badge-green'}`}>
+                  {isDelayed ? 'Delayed' : 'Live'}
+                </span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{quoteLabel}</span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>

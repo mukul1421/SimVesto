@@ -7,6 +7,12 @@ node_modules/
 dist/
 build/
 
+# Python
+venv/
+env/
+.venv/
+ml_service/venv/
+
 # Environment variables
 .env
 .env.local

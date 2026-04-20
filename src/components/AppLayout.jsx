@@ -32,6 +32,19 @@ export default function AppLayout() {
   const [arenaOpen, setArenaOpen] = useState(false);
   const [glossaryBotTerm, setGlossaryBotTerm] = useState(null);
   const formatSymbol = (value) => String(value || '').replace(/^IQ/, '');
+  const getDisplayPct = (stock) => {
+    const directPct = Number(stock?.dayChangePct);
+    if (Number.isFinite(directPct)) return directPct;
+
+    const price = Number(stock?.currentPrice);
+    const change = Number(stock?.dayChange);
+    const open = price - change;
+    if (Number.isFinite(open) && Math.abs(open) > 0.000001) {
+      return (change / open) * 100;
+    }
+
+    return 0;
+  };
   
   const fearModalData = useStore(s => s.fearModalData);
   const clearFearModal = useStore(s => s.clearFearModal);
@@ -46,7 +59,7 @@ export default function AppLayout() {
   }, []);
 
   useEffect(() => {
-    startRealtimeSync(4000);
+    startRealtimeSync(10000);
     useStore.getState().fetchFearData();
     fetchTradeHistory();
     const snapInterval = setInterval(recordPortfolioSnapshot, 30000);
@@ -144,6 +157,9 @@ export default function AppLayout() {
           {showSearch && filteredStocks.length > 0 && (
             <div className="search-dropdown">
               {filteredStocks.map(stock => (
+                (() => {
+                  const pct = getDisplayPct(stock);
+                  return (
                 <div
                   key={stock.id}
                   onClick={() => goToStock(stock.symbol)}
@@ -155,11 +171,13 @@ export default function AppLayout() {
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '13px' }}>₹{stock.currentPrice.toLocaleString()}</div>
-                    <div className={`price-change ${stock.dayChangePct >= 0 ? 'up' : 'down'}`}>
-                      {stock.dayChangePct >= 0 ? '▲' : '▼'} {Math.abs(stock.dayChangePct).toFixed(2)}%
+                    <div className={`price-change ${pct >= 0 ? 'up' : 'down'}`}>
+                      {pct >= 0 ? '▲' : '▼'} {Math.abs(pct).toFixed(2)}%
                     </div>
                   </div>
                 </div>
+                  );
+                })()
               ))}
             </div>
           )}
@@ -193,14 +211,19 @@ export default function AppLayout() {
       <div className="ticker-strip">
         <div className="ticker-content">
           {stocks.concat(stocks).map((stock, i) => (
+            (() => {
+              const pct = getDisplayPct(stock);
+              return (
             <div key={`${stock.id}-${i}`} className="ticker-item" style={{ cursor: 'pointer' }}
               onClick={() => navigate(`/app/trade/${stock.symbol}`)}>
               <span className="symbol">{formatSymbol(stock.symbol)}</span>
               <span style={{ fontWeight: 600 }}>₹{stock.currentPrice.toLocaleString()}</span>
-              <span className={`price-change ${stock.dayChangePct >= 0 ? 'up' : 'down'}`}>
-                {stock.dayChangePct >= 0 ? '▲' : '▼'}{Math.abs(stock.dayChangePct).toFixed(2)}%
+              <span className={`price-change ${pct >= 0 ? 'up' : 'down'}`}>
+                {pct >= 0 ? '▲' : '▼'}{Math.abs(pct).toFixed(2)}%
               </span>
             </div>
+              );
+            })()
           ))}
         </div>
       </div>

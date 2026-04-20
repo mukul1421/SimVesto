@@ -12,6 +12,7 @@ const LEGACY_STORAGE_PREFIX = "investiq_";
 
 // ── Stock price persistence helpers ──────────────────────────────────────────
 const STOCK_PRICES_KEY = `${STORAGE_PREFIX}stockPrices`;
+const TRUSTED_LIVE_SYMBOLS_KEY = `${STORAGE_PREFIX}trustedLiveSymbols`;
 
 function loadSeedPrices() {
   try {
@@ -34,9 +35,43 @@ function saveStockPrices(stocks) {
   }
 }
 
+function loadTrustedLiveSymbols() {
+  try {
+    const saved = localStorage.getItem(TRUSTED_LIVE_SYMBOLS_KEY);
+    if (!saved) return new Set();
+
+    const parsed = JSON.parse(saved);
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.map((symbol) => String(symbol)));
+  } catch {
+    return new Set();
+  }
+}
+
+function saveTrustedLiveSymbols(symbols) {
+  try {
+    const uniq = [...new Set((symbols || []).map((symbol) => String(symbol)))];
+    localStorage.setItem(TRUSTED_LIVE_SYMBOLS_KEY, JSON.stringify(uniq));
+  } catch (e) {
+    console.warn("Failed to persist trusted live symbols:", e);
+  }
+}
+
 // Initialize stocks with persisted seed prices so they survive page refreshes
 const _seedPrices = loadSeedPrices();
-const _initialStocks = initializeStocks(_seedPrices);
+const _trustedLiveSymbols = loadTrustedLiveSymbols();
+const _initialStocks = initializeStocks(_seedPrices).map((stock) => {
+  const isTrustedLive = _trustedLiveSymbols.has(stock.symbol);
+  if (!isTrustedLive) return stock;
+
+  return {
+    ...stock,
+    hasSeenLiveQuote: true,
+    isDelayed: false,
+    lastQuoteSourceType: "live",
+    lastQuoteSourceSymbol: "persisted-live",
+  };
+});
 // Immediately persist the prices so refreshes land at the same prices
 saveStockPrices(_initialStocks);
 
@@ -266,22 +301,43 @@ const useStore = create((set, get) => ({
         await import("../services/realtimeStocks");
       const liveMap = await fetchRealtimeStocks();
 
-      set((state) => ({
-        stocks: state.stocks.map((stock) =>
+      set((state) => {
+        const nextStocks = state.stocks.map((stock) =>
           liveMap[stock.symbol]
             ? mergeLivePrice(stock, liveMap[stock.symbol])
             : stock,
-        ),
-        realtimeLoading: false,
-        realtimeError: null,
-      }));
+        );
+
+        saveStockPrices(nextStocks);
+        saveTrustedLiveSymbols(
+          nextStocks
+            .filter((stock) => stock.hasSeenLiveQuote)
+            .map((stock) => stock.symbol),
+        );
+
+        return {
+          stocks: nextStocks,
+          realtimeLoading: false,
+          realtimeError: null,
+        };
+      });
 
       get().updateHoldingsPnL();
     } catch (error) {
-      set({
+      const attemptedAt = Date.now();
+      set((state) => ({
+        stocks: state.stocks.map((stock) =>
+          stock.hasSeenLiveQuote
+            ? {
+                ...stock,
+                isDelayed: true,
+                lastQuoteAttempt: attemptedAt,
+              }
+            : stock,
+        ),
         realtimeLoading: false,
         realtimeError: error?.message || "Failed to fetch realtime stock data",
-      });
+      }));
     }
   },
 
