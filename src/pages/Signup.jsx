@@ -185,6 +185,7 @@ export default function Signup() {
   const [sliderValue, setSliderValue] = useState(5000);
 
   const setUser = useStore(s => s.setUser);
+  const logout = useStore(s => s.logout);
   const updateFearScore = useStore(s => s.updateFearScore);
   const navigate = useNavigate();
 
@@ -198,6 +199,10 @@ export default function Signup() {
     setError('');
     try {
       const { api } = await import('../services/api.js');
+      
+      // Clear any previous session before registering new account
+      logout();
+      
       const data = await api.register(email, password);
       if (data.token) {
         localStorage.setItem('token', data.token);

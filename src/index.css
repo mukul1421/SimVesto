@@ -3276,7 +3276,7 @@ h1, h2, h3 {
 }
 
 .stat-card:hover::after {
-  opacity: 1;
+  opacity: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -6498,4 +6498,4 @@ h1, h2, h3 {
 .am-hud-stat-val {
   text-shadow: none !important;
 }
-
+

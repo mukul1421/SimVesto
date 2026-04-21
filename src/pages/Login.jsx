@@ -11,6 +11,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const setUser = useStore(s => s.setUser);
+  const logout = useStore(s => s.logout);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -24,6 +25,9 @@ export default function Login() {
       const data = await api.login(email, password);
       
       if (data.token) {
+        // Clear any previous session
+        logout();
+        
         localStorage.setItem('token', data.token);
         // Sync wallet
         const wallet = await api.getWallet();

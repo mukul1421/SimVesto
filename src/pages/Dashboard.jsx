@@ -252,13 +252,20 @@ export default function Dashboard() {
   const portfolioChartData = useMemo(() => {
     const snapshots = portfolioHistory.slice(-60);
 
+    // Seeded pseudo-random for deterministic noise (same data = same chart)
+    function seededRandom(seed) {
+      const x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    }
+
     // Helper: add micro-GBM noise between two points to simulate intraday movement
-    function interpolateWithNoise(start, end, steps, invested) {
+    function interpolateWithNoise(start, end, steps, invested, seedBase) {
       const pts = [];
       for (let s = 0; s < steps; s++) {
         const progress = s / steps;
         const base = start + (end - start) * progress;
-        const noise = base * 0.004 * (Math.random() - 0.48); // ±0.4% wiggle
+        const seed = seedBase + s + base;
+        const noise = base * 0.004 * (seededRandom(seed) - 0.48); // ±0.4% wiggle (deterministic)
         pts.push({ netWorth: Math.max(0, parseFloat((base + noise).toFixed(2))), invested });
       }
       return pts;
@@ -271,7 +278,8 @@ export default function Dashboard() {
         const a = snapshots[i];
         const b = snapshots[i + 1];
         const steps = Math.max(2, Math.floor(60 / snapshots.length));
-        interpolateWithNoise(a.netWorth, b.netWorth, steps, a.investedAmount ?? 0)
+        const seedBase = (a.timestamp || 0) + i; // Use timestamp as deterministic seed
+        interpolateWithNoise(a.netWorth, b.netWorth, steps, a.investedAmount ?? 0, seedBase)
           .forEach((p, j) => result.push({ time: result.length, ...p }));
       }
       const last = snapshots[snapshots.length - 1];
@@ -285,11 +293,10 @@ export default function Dashboard() {
       let runningNetWorth = baselineNetWorth;
       let runningInvested = 0;
       const points = [];
-      // Realistic start segment
-      interpolateWithNoise(runningNetWorth * 0.998, runningNetWorth, 6, 0)
-        .forEach((p, j) => points.push({ time: points.length, ...p }));
+      // Start from actual baseline (no artificial dip)
+      points.push({ time: 0, netWorth: runningNetWorth, invested: 0 });
 
-      sortedOrders.forEach((order) => {
+      sortedOrders.forEach((order, idx) => {
         const prev = runningNetWorth;
         if (order.type === 'BUY') runningInvested += Number(order.totalCost || 0);
         if (order.type === 'SELL') {
@@ -298,18 +305,28 @@ export default function Dashboard() {
           runningInvested = Math.max(0, runningInvested - (saleTotal - tradePnl));
           runningNetWorth += tradePnl;
         }
-        interpolateWithNoise(prev, runningNetWorth, 5, runningInvested)
+        interpolateWithNoise(prev, runningNetWorth, 5, runningInvested, (order.id || idx) + (order.timestamp || 0))
           .forEach((p) => points.push({ time: points.length, ...p }));
       });
       return points;
     }
 
-    // No trades yet — simulate realistic portfolio movement from baseline
+    // No trades yet — show flat portfolio (only 100k coins, no holdings)
+    // Only simulate movement if there are actual holdings
+    if (holdings.length === 0) {
+      const pts = [];
+      for (let i = 0; i < 60; i++) {
+        pts.push({ time: i, netWorth: parseFloat(netWorth.toFixed(2)), invested: investedAmount });
+      }
+      return pts;
+    }
+
+    // With holdings but no portfolio history snapshots yet — simulate realistic portfolio movement from baseline
     const pts = [];
     let val = netWorth;
-    const drift = 0.00015; // slight upward trend
+    const drift = 0.00015; // slight upward trend (only applies when holdings exist)
     for (let i = 0; i < 60; i++) {
-      const noise = val * 0.006 * (Math.random() - 0.48);
+      const noise = val * 0.006 * (seededRandom(netWorth + i) - 0.48);
       val = Math.max(val * 0.92, val + val * drift + noise);
       pts.push({ time: i, netWorth: parseFloat(val.toFixed(2)), invested: investedAmount });
     }

@@ -145,6 +145,29 @@ function saveUserState(user, key, value) {
   }
 }
 
+// Clear all user-specific localStorage data
+function clearUserState(user) {
+  try {
+    const identities = getUserIdentities(user);
+    const userDataKeys = [
+      "holdings", "orders", "fearScore", "fearHistory", "milestones",
+      "simulations", "portfolioHistory", "tradeHistory", "matchedTrades",
+      "companyNotes", "coinHistory"
+    ];
+    
+    for (const identity of identities) {
+      for (const key of userDataKeys) {
+        const storageKey = `${STORAGE_PREFIX}${identity}_${key}`;
+        const legacyStorageKey = `${LEGACY_STORAGE_PREFIX}${identity}_${key}`;
+        localStorage.removeItem(storageKey);
+        localStorage.removeItem(legacyStorageKey);
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to clear user state:", e);
+  }
+}
+
 const DEFAULT_FEAR_SCORE = { score: 80, fearClass: "HIGH" };
 const initialUser = loadState("user", null);
 
@@ -164,6 +187,14 @@ const useStore = create((set, get) => ({
   glossaryEnabled: loadState("glossaryEnabled", false),
 
   setUser: (user) => {
+    // Validate that we're not loading data for a different user
+    const previousUser = get().user;
+    
+    // If switching users, clear previous user's data first
+    if (previousUser && previousUser._id !== user._id && previousUser._id) {
+      clearUserState(previousUser);
+    }
+
     const loadedCoinHistory = loadUserState(user, "coinHistory", []);
     const coinHistory =
       loadedCoinHistory.length > 0
@@ -247,6 +278,12 @@ const useStore = create((set, get) => ({
   },
 
   logout: () => {
+    // Clear localStorage for the current user before logging out
+    const currentUser = get().user;
+    if (currentUser) {
+      clearUserState(currentUser);
+    }
+    
     set({
       user: null,
       isAuthenticated: false,
@@ -264,6 +301,7 @@ const useStore = create((set, get) => ({
     });
     saveState("user", null);
     saveState("isAuthenticated", false);
+    localStorage.removeItem('token');
   },
 
   // ── STOCKS STATE ──

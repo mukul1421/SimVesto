@@ -149,19 +149,19 @@ function StarRating({ stars, animate }) {
   }, [stars, animate]);
 
   return (
-    <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
       {[1,2,3,4,5].map(i => {
         const pct = Math.min(1, Math.max(0, filled - (i - 1)));
         return (
-          <div key={i} style={{ position: 'relative', width: 48, height: 48 }}>
-            <svg viewBox="0 0 24 24" width="48" height="48" style={{ position: 'absolute' }}>
+          <div key={i} style={{ position: 'relative', width: 48, height: 48, flex: '0 0 48px' }}>
+            <svg viewBox="0 0 24 24" width="48" height="48" style={{ position: 'absolute', inset: 0, display: 'block' }}>
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
                 fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
             </svg>
             {pct > 0 && (
-              <div style={{ position: 'absolute', inset: 0, width: `${pct * 100}%`, overflow: 'hidden',
+              <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: `${pct * 100}%`, overflow: 'hidden',
                 filter: animate ? 'drop-shadow(0 0 12px #fbbf24)' : 'none' }}>
-                <svg viewBox="0 0 24 24" width="48" height="48">
+                <svg viewBox="0 0 24 24" width="48" height="48" style={{ position: 'absolute', top: 0, left: 0, display: 'block' }}>
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
                     fill="#fbbf24" />
                 </svg>
@@ -994,9 +994,9 @@ export default function Arena({ isOpen, onClose }) {
 
               <div className="am-ai-panel">
                 <div style={{fontSize:11,fontWeight:800,letterSpacing:'0.15em',color:'#00f5ff',marginBottom:12,textShadow:'0 0 10px #00f5ff'}}>
-                  ⚡ AI COACH ANALYSIS {aiLoading && <span style={{color:'rgba(255,255,255,0.3)',fontWeight:400}}>· generating...</span>}
+                  ⚡ AI COACH ANALYSIS {aiLoading && <span style={{color:'var(--text-muted)',fontWeight:400}}>· generating...</span>}
                 </div>
-                <div style={{fontSize:14,lineHeight:1.9,color:'rgba(255,255,255,0.8)',minHeight:48}}>
+                <div style={{fontSize:14,lineHeight:1.9,color:'var(--text-primary)',minHeight:48}}>
                   {aiFeedback || (aiLoading ? '' : '...')}
                   {aiLoading && <span style={{color:'#00f5ff',animation:'arenaBlink .7s ease infinite'}}>▊</span>}
                 </div>
